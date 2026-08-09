@@ -66,7 +66,7 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.match(page, /路区-邮编搜索/);
   assert.match(page, /路区全量数据/);
   assert.match(page, /邮编全量数据/);
-  assert.match(page, /路区难易度全量数据/);
+  assert.doesNotMatch(page, /label: "路区难易度全量数据"/);
   assert.match(page, /邮编维度/);
   assert.match(page, /上传邮编数据/);
   assert.match(page, /导出邮编数据/);
@@ -77,8 +77,8 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.match(page, /postal-change-summary/);
   assert.match(page, /· 从/);
   assert.match(page, /· 到/);
-  assert.match(page, /邮编DSP成本/);
-  assert.match(page, /邮编难易度/);
+  assert.doesNotMatch(page, /<strong>邮编DSP成本<\/strong>/);
+  assert.doesNotMatch(page, /<strong>邮编难易度<\/strong>/);
   assert.match(page, /关联路区/);
   assert.match(page, /openPostalDetails/);
   assert.match(page, /在途时长为0/);
@@ -124,7 +124,7 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.doesNotMatch(page, /路区时薪（薪资文件）/);
   assert.doesNotMatch(page, /<strong>路区难易度<\/strong>/);
   assert.doesNotMatch(page, /<strong>收件地址类型占比<\/strong>/);
-  assert.equal((page.match(/<strong>异常原因<\/strong>/g) ?? []).length, 1);
+  assert.doesNotMatch(page, /<strong>异常原因<\/strong>/);
   assert.doesNotMatch(page, /件均DSP成本 × 邮编作业PPH/);
   assert.doesNotMatch(page, /人口密度 × 作业PPH/);
   assert.doesNotMatch(page, /label="派送失败率"/);

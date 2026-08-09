@@ -127,7 +127,6 @@ const FUNCTION_NAV_ITEMS = [
   { id: "route-postal-search", label: "路区-邮编搜索", icon: Search },
   { id: "data", label: "路区全量数据", icon: Database },
   { id: "postal", label: "邮编全量数据", icon: FileSpreadsheet },
-  { id: "difficulty", label: "路区难易度全量数据", icon: Layers3 },
 ];
 
 const REGION_NAV_ITEMS = [
@@ -515,8 +514,6 @@ export default function Home() {
   const [expandedWatchlists, setExpandedWatchlists] = useState<
     Record<string, boolean>
   >({});
-  const [difficultySearch, setDifficultySearch] = useState("");
-  const [difficultyPage, setDifficultyPage] = useState(1);
   const [tableSearch, setTableSearch] = useState("");
   const [tableSort, setTableSort] = useState<SortKey>("attempted");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -599,36 +596,6 @@ export default function Home() {
   }, []);
 
   const propertyMap = useMemo(() => buildPropertyMap(properties), [properties]);
-  const difficultyProperties = useMemo(
-    () => properties.filter((item) => item.difficulty),
-    [properties],
-  );
-  const filteredDifficultyProperties = useMemo(() => {
-    const search = difficultySearch.trim().toLowerCase();
-    return difficultyProperties.filter((item) =>
-      search
-        ? [
-            item.route,
-            item.transferSite,
-            item.fleet,
-            item.difficulty,
-            item.safety,
-          ]
-            .join(" ")
-            .toLowerCase()
-            .includes(search)
-        : true,
-    );
-  }, [difficultyProperties, difficultySearch]);
-  const difficultyPageSize = 10;
-  const difficultyPageCount = Math.max(
-    1,
-    Math.ceil(filteredDifficultyProperties.length / difficultyPageSize),
-  );
-  const visibleDifficultyProperties = filteredDifficultyProperties.slice(
-    (difficultyPage - 1) * difficultyPageSize,
-    difficultyPage * difficultyPageSize,
-  );
   const weeks = useMemo(
     () => sortWeeks(records.map((row) => row.week)),
     [records],
@@ -1951,10 +1918,6 @@ export default function Home() {
     postalRows.map((row) => row.operationPph).filter((value) => value > 0),
     0.25,
   );
-  const postalFailP75 = percentile(
-    postalRows.map((row) => row.failRate),
-    0.75,
-  );
   const selectedRoutePostalRelations = useMemo(
     () =>
       selectedRoute
@@ -2209,7 +2172,6 @@ export default function Home() {
         return bMatch - aMatch;
       });
   }, [postalProperties, selectedPostal]);
-  const selectedPostalProperty = selectedPostalProperties[0];
   const selectedPostalCosts = useMemo(() => {
     if (!selectedPostal) return [];
     const matches = postalCosts.filter(
@@ -2222,20 +2184,6 @@ export default function Home() {
     );
     return siteMatches.length ? siteMatches : matches;
   }, [postalCosts, selectedPostal]);
-  const selectedPostalCostMetrics = useMemo(() => {
-    const shipmentVolume = sum(
-      selectedPostalCosts.map((row) => row.shipmentVolume),
-    );
-    const bookedCost = sum(
-      selectedPostalCosts.map((row) => row.bookedCost),
-    );
-    return {
-      shipmentVolume,
-      bookedCost,
-      averageDspCost:
-        shipmentVolume > 0 ? bookedCost / shipmentVolume : 0,
-    };
-  }, [selectedPostalCosts]);
   const selectedPostalRoutes = useMemo(
     () =>
       [
@@ -2283,24 +2231,6 @@ export default function Home() {
       change: fromValue > 0 ? (toValue - fromValue) / fromValue : null,
     };
   }, [selectedPostal, selectedPostalContext, selectedPostalHistory]);
-  const selectedPostalAnomalies = selectedPostal
-    ? [
-        selectedPostal.operationPph < postalP25
-          ? `作业PPH低于当前大区邮编P25（${formatNumber(postalP25, 2)}）`
-          : "",
-        selectedPostal.failRate >= postalFailP75 && selectedPostal.failRate > 0
-          ? `派送失败率处于邮编高位（${formatPercent(selectedPostal.failRate)}）`
-          : "",
-        selectedPostalProperty?.expertPph > 0 &&
-        selectedPostal.operationPph < selectedPostalProperty.expertPph
-          ? `作业PPH低于熟手PPH ${formatNumber(selectedPostalProperty.expertPph, 1)}`
-          : "",
-        selectedPostalProperty?.isNew.includes("新开") &&
-        !selectedPostalProperty.isNew.includes("非新开")
-          ? "新开邮编，纳入爬坡观察"
-          : "",
-      ].filter(Boolean)
-    : [];
   const similarPostals = useMemo(() => {
     if (!selectedPostal) return [];
     return postalRows
@@ -2824,10 +2754,6 @@ export default function Home() {
                   )}
                 </strong>
                 <span>DSP</span>
-              </div>
-              <div>
-                <strong>{formatNumber(difficultyProperties.length)}</strong>
-                <span>难易度已标注</span>
               </div>
             </div>
           </section>
@@ -3505,152 +3431,6 @@ export default function Home() {
                 ))}
               </div>
             </article>
-          </section>
-
-          <section
-            id="difficulty"
-            className="panel difficulty-panel nav-anchor"
-          >
-            <SectionHeader
-              eyebrow="ROUTE DIFFICULTY"
-              title="路区难易度数据"
-              description={`全量文件共 ${formatNumber(properties.length)} 个路区，其中 ${formatNumber(difficultyProperties.length)} 个已标注难易度；配送量门槛仅用于效率分析`}
-              right={
-                <span className="difficulty-loaded-tag">
-                  <CheckCircle2 size={14} />
-                  全量已载入
-                </span>
-              }
-            />
-            <div className="difficulty-toolbar">
-              <label className="search-box">
-                <Search size={16} />
-                <input
-                  value={difficultySearch}
-                  onChange={(event) => {
-                    setDifficultySearch(event.target.value);
-                    setDifficultyPage(1);
-                  }}
-                  placeholder="搜索路区、站点、车队或难易度"
-                />
-                {difficultySearch ? (
-                  <button
-                    onClick={() => {
-                      setDifficultySearch("");
-                      setDifficultyPage(1);
-                    }}
-                    aria-label="清空难易度搜索"
-                  >
-                    <X size={14} />
-                  </button>
-                ) : null}
-              </label>
-              <span>
-                匹配 {formatNumber(filteredDifficultyProperties.length)} 条
-              </span>
-            </div>
-            {difficultyProperties.length ? (
-              <div className="difficulty-table-wrap">
-                <table className="difficulty-table">
-                  <thead>
-                    <tr>
-                      <th>路区名称</th>
-                      <th>路区难易度</th>
-                      <th>首单里程</th>
-                      <th>熟手PPH</th>
-                      <th>派送异常率</th>
-                      <th>安全度</th>
-                      <th>数据状态</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleDifficultyProperties.map((property) => {
-                      const inCurrentAnalysis = routeRows.some(
-                        (row) => row.route === property.route,
-                      );
-                      return (
-                        <tr key={property.route}>
-                          <td>
-                            <strong>{property.route}</strong>
-                            <small>{property.transferSite || "未标注站点"}</small>
-                          </td>
-                          <td>
-                            <span className="difficulty-value">
-                              {property.difficulty}
-                            </span>
-                          </td>
-                          <td>
-                            {property.firstMile
-                              ? `${formatNumber(property.firstMile, 1)} mi`
-                              : "未标注"}
-                          </td>
-                          <td>
-                            {property.expertPph
-                              ? formatNumber(property.expertPph, 1)
-                              : "未标注"}
-                          </td>
-                          <td>
-                            {property.deliveryExceptionRate
-                              ? formatPercent(
-                                  property.deliveryExceptionRate,
-                                  2,
-                                )
-                              : "未标注"}
-                          </td>
-                          <td>{property.safety || "未标注"}</td>
-                          <td>
-                            <span
-                              className={`difficulty-status ${
-                                inCurrentAnalysis
-                                  ? "difficulty-status-active"
-                                  : "difficulty-status-filtered"
-                              }`}
-                            >
-                              {inCurrentAnalysis
-                                ? "已进入当前效率分析"
-                                : "已加载 · 未进入≥100分析"}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <EmptyState text="当前属性文件中没有路区难易度数据" />
-            )}
-            {difficultyProperties.length ? (
-              <div className="difficulty-pagination">
-                <span>
-                  第 {difficultyPage} / {difficultyPageCount} 页
-                </span>
-                <div>
-                  <button
-                    onClick={() =>
-                      setDifficultyPage((current) =>
-                        Math.max(1, current - 1),
-                      )
-                    }
-                    disabled={difficultyPage === 1}
-                    aria-label="难易度上一页"
-                  >
-                    <ArrowLeft size={15} />
-                  </button>
-                  <button
-                    onClick={() =>
-                      setDifficultyPage((current) =>
-                        Math.min(difficultyPageCount, current + 1),
-                      )
-                    }
-                    disabled={difficultyPage === difficultyPageCount}
-                    aria-label="难易度下一页"
-                  >
-                    <ArrowRight size={15} />
-                  </button>
-                </div>
-              </div>
-            ) : null}
           </section>
 
           <section id="postal" className="panel postal-panel nav-anchor">
@@ -4470,129 +4250,6 @@ export default function Home() {
                   </small>
                 </div>
               </div>
-
-              <section className="drawer-section">
-                <div className="drawer-section-title">
-                  <CircleDollarSign size={16} />
-                  <strong>邮编DSP成本</strong>
-                </div>
-                <div className="property-grid postal-cost-grid">
-                  <div className="postal-cost-primary">
-                    <span>件均DSP成本</span>
-                    <strong>
-                      {selectedPostalCostMetrics.averageDspCost > 0
-                        ? `$${formatNumber(selectedPostalCostMetrics.averageDspCost, 2)}/单`
-                        : "暂无数据"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>成本样本运单量</span>
-                    <strong>
-                      {selectedPostalCostMetrics.shipmentVolume > 0
-                        ? `${formatNumber(selectedPostalCostMetrics.shipmentVolume)} 单`
-                        : "暂无数据"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>记账成本（未税）</span>
-                    <strong>
-                      {selectedPostalCostMetrics.bookedCost > 0
-                        ? `$${formatNumber(selectedPostalCostMetrics.bookedCost)}`
-                        : "暂无数据"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>成本数据周期</span>
-                    <strong>2026年6月</strong>
-                  </div>
-                </div>
-              </section>
-
-              <section className="drawer-section">
-                <div className="drawer-section-title">
-                  <AlertTriangle size={16} />
-                  <strong>异常原因</strong>
-                </div>
-                {selectedPostalAnomalies.length ? (
-                  <ul className="reason-list">
-                    {selectedPostalAnomalies.map((reason) => (
-                      <li key={reason}>
-                        <span />
-                        {reason}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="drawer-good">
-                    <CheckCircle2 size={17} />
-                    当前规则下未识别到重点异常
-                  </div>
-                )}
-              </section>
-
-              <section className="drawer-section">
-                <div className="drawer-section-title">
-                  <MapPinned size={16} />
-                  <strong>邮编难易度</strong>
-                </div>
-                <div className="property-grid">
-                  <div>
-                    <span>难易度</span>
-                    <strong>
-                      {selectedPostalProperty?.difficulty || "未标注"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>是否新邮编</span>
-                    <strong>{selectedPostalProperty?.isNew || "未标注"}</strong>
-                  </div>
-                  <div>
-                    <span>所属路区首单里程</span>
-                    <strong>
-                      {selectedPostalProperty?.firstMile
-                        ? `${formatNumber(selectedPostalProperty.firstMile, 1)} mi`
-                        : "未标注"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>熟手PPH</span>
-                    <strong>
-                      {selectedPostalProperty?.expertPph
-                        ? `${formatNumber(selectedPostalProperty.expertPph, 1)} 件`
-                        : "未标注"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>派送异常率</span>
-                    <strong>
-                      {selectedPostalProperty?.deliveryExceptionRate
-                        ? formatPercent(
-                            selectedPostalProperty.deliveryExceptionRate,
-                            2,
-                          )
-                        : "未标注"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>DNR率</span>
-                    <strong>
-                      {selectedPostalProperty?.dnrRate
-                        ? formatPercent(selectedPostalProperty.dnrRate, 2)
-                        : "未标注"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>安全度</span>
-                    <strong>{selectedPostalProperty?.safety || "未标注"}</strong>
-                  </div>
-                  <div>
-                    <span>业务模式</span>
-                    <strong>
-                      {selectedPostalProperty?.businessMode || "未标注"}
-                    </strong>
-                  </div>
-                </div>
-              </section>
 
               <section className="drawer-section">
                 <div className="drawer-section-title">
