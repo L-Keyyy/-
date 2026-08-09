@@ -19,8 +19,15 @@ await build({
 
 let html = fs.readFileSync(path.join(distDir, "index.html"), "utf8");
 
-const initialData = fs
-  .readFileSync(path.join(projectRoot, "public", "data", "initial.json"), "utf8")
+const initialPayload = JSON.parse(
+  fs.readFileSync(
+    path.join(projectRoot, "public", "data", "initial.json"),
+    "utf8",
+  ),
+);
+delete initialPayload.postalWeightCosts;
+delete initialPayload.meta?.postalWeightCostRows;
+const initialData = JSON.stringify(initialPayload)
   .replace(/&/g, "\\u0026")
   .replace(/</g, "\\u003c")
   .replace(/>/g, "\\u003e")

@@ -24,7 +24,6 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDot,
-  CircleDollarSign,
   Clock3,
   Database,
   Download,
@@ -73,7 +72,6 @@ import type {
   PostalPerformanceRecord,
   PostalProperty,
   PostalRow,
-  PostalWeightCost,
   RouteProperty,
   RouteRow,
 } from "./types";
@@ -108,15 +106,6 @@ type RouteWatchContext = {
   caption: string;
 };
 
-type PostalSalaryItem = {
-  row: PostalRow;
-  shipmentVolume: number;
-  bookedCost: number;
-  unitCost: number;
-  hourlyWage: number;
-  salaryBasisPph: number;
-};
-
 const postalRowKey = (
   row: Pick<PostalRow, "postalCode" | "site" | "dsp" | "route">,
 ) => `${row.postalCode}¦${row.site}¦${row.dsp}¦${row.route ?? ""}`;
@@ -124,7 +113,6 @@ const postalRowKey = (
 const FUNCTION_NAV_ITEMS = [
   { id: "route-watchlist", label: "路区重点名单", icon: Route },
   { id: "postal-watchlist", label: "邮编重点名单", icon: MapPinned },
-  { id: "route-postal-search", label: "路区-邮编搜索", icon: Search },
   { id: "data", label: "路区全量数据", icon: Database },
   { id: "postal", label: "邮编全量数据", icon: FileSpreadsheet },
 ];
@@ -139,16 +127,6 @@ const REGION_NAV_ITEMS = [
   { id: "exceptions", label: "重点异常", icon: AlertTriangle },
   { id: "postal", label: "邮编数据", icon: MapPinned },
   { id: "data", label: "全量数据", icon: Database },
-];
-
-const WEIGHT_BAND_ORDER = [
-  "0<参数≤1LB",
-  "1<参数≤5LB",
-  "5<参数≤10LB",
-  "10<参数≤20LB",
-  "20<参数≤30LB",
-  "30<参数≤40LB",
-  "40<参数≤99999LB",
 ];
 
 const DIFFICULT_ADDRESS_KEYWORDS = [
@@ -467,9 +445,6 @@ export default function Home() {
     [],
   );
   const [postalCosts, setPostalCosts] = useState<PostalCost[]>([]);
-  const [postalWeightCosts, setPostalWeightCosts] = useState<
-    PostalWeightCost[]
-  >([]);
   const [properties, setProperties] = useState<RouteProperty[]>([]);
   const [sourceMeta, setSourceMeta] = useState<InitialData["meta"] | null>(null);
   const [excludedCount, setExcludedCount] = useState(0);
@@ -506,11 +481,6 @@ export default function Home() {
     useState<RouteRow | null>(null);
   const [postalParentRouteContext, setPostalParentRouteContext] =
     useState<RouteWatchContext | null>(null);
-  const [routePostalSalarySearch, setRoutePostalSalarySearch] = useState("");
-  const [selectedPostalSalary, setSelectedPostalSalary] =
-    useState<PostalSalaryItem | null>(null);
-  const [weightPriceSearch, setWeightPriceSearch] = useState("");
-  const [targetHourlyWage, setTargetHourlyWage] = useState("");
   const [expandedWatchlists, setExpandedWatchlists] = useState<
     Record<string, boolean>
   >({});
@@ -543,7 +513,6 @@ export default function Home() {
       setPostalRecords(cleanedPostal.records);
       setPostalProperties(data.postalProperties ?? []);
       setPostalCosts(data.postalCosts ?? []);
-      setPostalWeightCosts(data.postalWeightCosts ?? []);
       setProperties(data.properties);
       setExcludedCount(cleaned.excluded);
       setExcludedPostalCount(cleanedPostal.excluded);
@@ -850,128 +819,6 @@ export default function Home() {
   const p25WatchRows = routeRows
     .filter((row) => row.operationPph < quantiles.p25)
     .sort((a, b) => a.operationPph - b.operationPph);
-
-  const activeSalaryRoute = useMemo(() => {
-    const query = routeFilter.trim().toLowerCase();
-    if (!query) return null;
-    return (
-      routeSearchRows
-        .filter((row) => row.route.toLowerCase() === query)
-        .sort((a, b) => b.attempted - a.attempted)[0] ?? null
-    );
-  }, [routeFilter, routeSearchRows]);
-  const routePostalSalaryRows = useMemo(() => {
-    if (!activeSalaryRoute) return [];
-    const search = routePostalSalarySearch.trim().toLowerCase();
-    const salaryProperty = propertyMap.get(activeSalaryRoute.route);
-    const routeHourlyWage = salaryProperty?.routeHourlyWage ?? 0;
-    const salaryBasisPph =
-      routeHourlyWage > 0 && (salaryProperty?.routeUnitPrice ?? 0) > 0
-        ? routeHourlyWage / (salaryProperty?.routeUnitPrice ?? 1)
-        : 0;
-    const rows = aggregatePostalRows(
-      postalRecords.filter(
-        (row) =>
-          row.week === selectedWeek &&
-          row.route === activeSalaryRoute.route &&
-          row.site === activeSalaryRoute.site &&
-          (activeRegion === "ALL" || row.region === activeRegion),
-      ),
-    );
-    return rows
-      .map((row): PostalSalaryItem => {
-        const costs = postalCosts.filter(
-          (cost) =>
-            cost.postalCode === row.postalCode &&
-            cost.route === row.route &&
-            cost.site === row.site &&
-            cost.region === row.region,
-        );
-        const shipmentVolume = sum(
-          costs.map((cost) => cost.shipmentVolume),
-        );
-        const bookedCost = sum(costs.map((cost) => cost.bookedCost));
-        const unitCost = shipmentVolume > 0 ? bookedCost / shipmentVolume : 0;
-        return {
-          row,
-          shipmentVolume,
-          bookedCost,
-          unitCost,
-          hourlyWage: routeHourlyWage,
-          salaryBasisPph,
-        };
-      })
-      .filter((item) =>
-        search
-          ? [
-              item.row.postalCode,
-              item.row.site,
-              item.row.dsp,
-              item.row.route,
-            ]
-              .join(" ")
-              .toLowerCase()
-              .includes(search)
-          : true,
-      )
-      .sort((a, b) => b.hourlyWage - a.hourlyWage);
-  }, [
-    activeRegion,
-    activeSalaryRoute,
-    postalCosts,
-    postalRecords,
-    propertyMap,
-    routePostalSalarySearch,
-    selectedWeek,
-  ]);
-  const postalSalaryMedian = median(
-    routePostalSalaryRows
-      .map((item) => item.hourlyWage)
-      .filter((value) => value > 0),
-  );
-  const selectedPostalWeightRows = useMemo(() => {
-    if (!selectedPostalSalary) return [];
-    const { row } = selectedPostalSalary;
-    return postalWeightCosts
-      .filter(
-        (cost) =>
-          cost.postalCode === row.postalCode &&
-          cost.route === row.route &&
-          cost.site === row.site &&
-          cost.region === row.region,
-      )
-      .sort((a, b) => {
-        const bandGap =
-          WEIGHT_BAND_ORDER.indexOf(a.weightBand) -
-          WEIGHT_BAND_ORDER.indexOf(b.weightBand);
-        if (bandGap) return bandGap;
-        return a.priceType.localeCompare(b.priceType, "zh-CN");
-      });
-  }, [postalWeightCosts, selectedPostalSalary]);
-  const filteredPostalWeightRows = useMemo(() => {
-    const search = weightPriceSearch.trim().toLowerCase();
-    return selectedPostalWeightRows.filter((row) =>
-      search
-        ? [row.weightBand, row.priceType]
-            .join(" ")
-            .toLowerCase()
-            .includes(search)
-        : true,
-    );
-  }, [selectedPostalWeightRows, weightPriceSearch]);
-  const targetHourlyValue = Number(targetHourlyWage);
-  const targetUnitPrice =
-    selectedPostalSalary &&
-    targetHourlyValue > 0 &&
-    selectedPostalSalary.salaryBasisPph > 0
-      ? targetHourlyValue / selectedPostalSalary.salaryBasisPph
-      : 0;
-  const weightPriceAdjustment =
-    selectedPostalSalary &&
-    selectedPostalSalary.unitCost > 0 &&
-    targetUnitPrice > 0
-      ? targetUnitPrice / selectedPostalSalary.unitCost
-      : 0;
 
   const weeklyRouteMap = useMemo(() => {
     const map = new Map<string, RouteRow[]>();
@@ -1783,11 +1630,6 @@ export default function Home() {
           scopedPostalCodes.has(row.postalCode) &&
           (activeRegion === "ALL" || row.region === activeRegion),
       );
-      const scopedPostalWeightCosts = postalWeightCosts.filter(
-        (row) =>
-          scopedRoutes.has(row.route) &&
-          (activeRegion === "ALL" || row.region === activeRegion),
-      );
       const scopedData: InitialData = {
         meta: {
           sourceRows: scopedRecords.length,
@@ -1796,7 +1638,6 @@ export default function Home() {
           postalRows: scopedPostalRecords.length,
           postalPropertyRows: scopedPostalProperties.length,
           postalCostRows: scopedPostalCosts.length,
-          postalWeightCostRows: scopedPostalWeightCosts.length,
           estimatedTransitRows: scopedRecords.filter(
             (row) => row.transitHoursEstimated,
           ).length,
@@ -1810,7 +1651,6 @@ export default function Home() {
         postalRecords: scopedPostalRecords,
         postalProperties: scopedPostalProperties,
         postalCosts: scopedPostalCosts,
-        postalWeightCosts: scopedPostalWeightCosts,
       };
       const serializedData = JSON.stringify(scopedData)
         .replace(/&/g, "\\u0026")
@@ -2265,7 +2105,6 @@ export default function Home() {
     row: RouteRow,
     context: RouteWatchContext | null = null,
   ) => {
-    setSelectedPostalSalary(null);
     setSelectedPostal(null);
     setSelectedPostalContext(null);
     setPostalParentRoute(null);
@@ -2307,8 +2146,6 @@ export default function Home() {
   };
   const handleRouteSearchChange = (value: string) => {
     setRouteFilter(value);
-    setRoutePostalSalarySearch("");
-    setSelectedPostalSalary(null);
     const matchedRoute = findSearchedRoute(value);
     if (matchedRoute) openRouteDetails(matchedRoute);
   };
@@ -2325,21 +2162,6 @@ export default function Home() {
     setSelectedRoute(null);
     setSelectedRouteContext(null);
   };
-  const openPostalSalaryDetails = (item: PostalSalaryItem) => {
-    setSelectedRoute(null);
-    setSelectedRouteContext(null);
-    setSelectedPostal(null);
-    setSelectedPostalContext(null);
-    setSelectedPostalSalary(item);
-    setWeightPriceSearch("");
-    setTargetHourlyWage("");
-  };
-  const closePostalSalaryDetails = () => {
-    setSelectedPostalSalary(null);
-    setWeightPriceSearch("");
-    setTargetHourlyWage("");
-  };
-
   const activeWeekStart = currentRecords.find(
     (row) => row.week === selectedWeek,
   )?.weekStart;
@@ -3208,132 +3030,6 @@ export default function Home() {
           </section>
 
           <section className="chart-grid">
-            <article
-              id="route-postal-search"
-              className="panel panel-wide postal-salary-panel nav-anchor"
-            >
-              <SectionHeader
-                eyebrow="POSTAL HOURLY WAGE"
-                title={
-                  activeSalaryRoute
-                    ? `${activeSalaryRoute.route} · 邮编薪资`
-                    : "路区-邮编薪资"
-                }
-                description={
-                  activeSalaryRoute
-                    ? "时薪直接读取薪资文件中的路区时薪，不使用当前周PPH重新计算"
-                    : "在上方路区筛选中输入完整路区名称，查看薪资文件原值"
-                }
-                right={
-                  activeSalaryRoute ? (
-                    <div className="postal-salary-summary">
-                      <span>
-                        <strong>{formatNumber(routePostalSalaryRows.length)}</strong>
-                        个邮编
-                      </span>
-                      <span>
-                        薪资文件时薪
-                        <strong>${formatNumber(postalSalaryMedian, 2)}/h</strong>
-                      </span>
-                    </div>
-                  ) : null
-                }
-              />
-              {activeSalaryRoute ? (
-                <>
-                  <div className="postal-salary-toolbar">
-                    <label className="search-box">
-                      <Search size={15} />
-                      <input
-                        value={routePostalSalarySearch}
-                        onChange={(event) =>
-                          setRoutePostalSalarySearch(event.target.value)
-                        }
-                        placeholder="搜索邮编、站点或DSP"
-                        aria-label="搜索路区邮编时薪"
-                      />
-                      {routePostalSalarySearch ? (
-                        <button
-                          type="button"
-                          onClick={() => setRoutePostalSalarySearch("")}
-                          aria-label="清空邮编时薪搜索"
-                        >
-                          <X size={13} />
-                        </button>
-                      ) : null}
-                    </label>
-                    <span>
-                      每个邮编沿用所属路区的薪资文件时薪；点击行查看重量分段单价
-                    </span>
-                  </div>
-                  {routePostalSalaryRows.length ? (
-                    <div className="postal-salary-table-wrap">
-                      <table className="postal-salary-table">
-                        <thead>
-                          <tr>
-                            <th>邮编</th>
-                            <th>DSP</th>
-                            <th>配送量</th>
-                            <th>作业PPH</th>
-                            <th>件均DSP成本</th>
-                            <th>薪资文件时薪</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {routePostalSalaryRows.map((item) => (
-                            <tr
-                              key={postalRowKey(item.row)}
-                              className="postal-salary-row"
-                              tabIndex={0}
-                              aria-label={`查看邮编${item.row.postalCode}重量分段单价`}
-                              onClick={() => openPostalSalaryDetails(item)}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter" || event.key === " ") {
-                                  event.preventDefault();
-                                  openPostalSalaryDetails(item);
-                                }
-                              }}
-                            >
-                              <td>
-                                <strong>{item.row.postalCode}</strong>
-                              </td>
-                              <td>{item.row.dsp || "—"}</td>
-                              <td>{formatNumber(item.row.attempted)}</td>
-                              <td>{formatNumber(item.row.operationPph, 2)}</td>
-                              <td>
-                                {item.unitCost > 0
-                                  ? `$${formatNumber(item.unitCost, 2)}/单`
-                                  : "—"}
-                              </td>
-                              <td>
-                                <button
-                                  type="button"
-                                  className="postal-wage-button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    openPostalSalaryDetails(item);
-                                  }}
-                                  aria-label={`查看邮编${item.row.postalCode}重量分段单价`}
-                                >
-                                  {item.hourlyWage > 0
-                                    ? `$${formatNumber(item.hourlyWage, 2)}/h`
-                                    : "无薪资记录"}
-                                  <ChevronRight size={14} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <EmptyState text="该路区当前没有可用的邮编成本与效率数据" />
-                  )}
-                </>
-              ) : (
-                <EmptyState text="请在上方路区筛选中输入完整路区名称" />
-              )}
-            </article>
             <article className="panel quantile-watch-panel">
               <SectionHeader
                 eyebrow="QUANTILE WATCH"
@@ -4390,198 +4086,6 @@ export default function Home() {
         </div>
       ) : null}
 
-      {selectedPostalSalary ? (
-        <div className="drawer-layer">
-          <button
-            className="drawer-backdrop"
-            onClick={closePostalSalaryDetails}
-            aria-label="关闭重量分段单价"
-          />
-          <aside
-            className="route-drawer postal-price-drawer"
-            aria-label="邮编重量分段单价"
-          >
-            <div className="drawer-head postal-price-head">
-              <div>
-                <span>
-                  {currentRegionName} · {selectedPostalSalary.row.week} · 薪资文件
-                </span>
-                <h2>{selectedPostalSalary.row.postalCode}</h2>
-                <p>
-                  {selectedPostalSalary.row.route} · {selectedPostalSalary.row.site} ·{" "}
-                  {selectedPostalSalary.row.dsp}
-                </p>
-              </div>
-              <div className="postal-price-head-metrics">
-                <span>
-                  薪资文件时薪
-                  <strong>
-                    ${formatNumber(selectedPostalSalary.hourlyWage, 2)}/h
-                  </strong>
-                </span>
-                <span>
-                  件均成本
-                  <strong>${formatNumber(selectedPostalSalary.unitCost, 2)}/单</strong>
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={closePostalSalaryDetails}
-                aria-label="关闭重量分段单价"
-              >
-                <X size={19} />
-              </button>
-            </div>
-            <div className="drawer-scroll postal-price-scroll">
-              <section className="drawer-section weight-price-section">
-                <div className="weight-price-title-row">
-                  <div className="drawer-section-title">
-                    <Layers3 size={16} />
-                    <div>
-                      <strong>重量分段单价</strong>
-                      <span>时薪取薪资文件原值 · 成本期 2026年6月</span>
-                    </div>
-                  </div>
-                  <label className="search-box weight-price-search">
-                    <Search size={15} />
-                    <input
-                      value={weightPriceSearch}
-                      onChange={(event) => setWeightPriceSearch(event.target.value)}
-                      placeholder="搜索重量段或价格类型"
-                      aria-label="搜索重量分段单价"
-                    />
-                    {weightPriceSearch ? (
-                      <button
-                        type="button"
-                        onClick={() => setWeightPriceSearch("")}
-                        aria-label="清空重量分段搜索"
-                      >
-                        <X size={13} />
-                      </button>
-                    ) : null}
-                  </label>
-                </div>
-                {filteredPostalWeightRows.length ? (
-                  <div className="weight-price-table-wrap">
-                    <table className="weight-price-table">
-                      <thead>
-                        <tr>
-                          <th>重量段</th>
-                          <th>价格类型</th>
-                          <th>样本单量</th>
-                          <th>当前单价</th>
-                          <th>建议单价</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredPostalWeightRows.map((row) => {
-                          const recommendedPrice = weightPriceAdjustment
-                            ? row.averageDspCost * weightPriceAdjustment
-                            : 0;
-                          return (
-                            <tr key={`${row.weightBand}-${row.priceType}`}>
-                              <td><strong>{row.weightBand}</strong></td>
-                              <td>
-                                <span className="price-type-badge">
-                                  {row.priceType}
-                                </span>
-                              </td>
-                              <td>{formatNumber(row.shipmentVolume)}</td>
-                              <td>${formatNumber(row.averageDspCost, 2)}</td>
-                              <td className={recommendedPrice ? "has-target" : ""}>
-                                {recommendedPrice
-                                  ? `$${formatNumber(recommendedPrice, 2)}`
-                                  : "输入目标后计算"}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <EmptyState text="当前搜索下没有重量分段价格" />
-                )}
-              </section>
-
-              <section className="drawer-section wage-calculator">
-                <div className="drawer-section-title">
-                  <CircleDollarSign size={17} />
-                  <div>
-                    <strong>目标时薪单价计算器</strong>
-                    <span>使用薪资文件同期效率基准，不套用当前周PPH</span>
-                  </div>
-                </div>
-                <div className="calculator-layout">
-                  <label className="calculator-input-card">
-                    <span>想达到的时薪</span>
-                    <div>
-                      <b>$</b>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={targetHourlyWage}
-                        onChange={(event) => setTargetHourlyWage(event.target.value)}
-                        placeholder="例如 35.00"
-                        aria-label="输入目标时薪"
-                      />
-                      <em>/h</em>
-                    </div>
-                    <small>
-                      薪资文件效率基准：{formatNumber(selectedPostalSalary.salaryBasisPph, 2)} PPH
-                    </small>
-                  </label>
-                  <div className="calculator-results">
-                    <div>
-                      <span>建议综合单价</span>
-                      <strong>
-                        {targetUnitPrice
-                          ? `$${formatNumber(targetUnitPrice, 2)}/单`
-                          : "—"}
-                      </strong>
-                      <small>目标时薪 ÷ 薪资文件效率基准</small>
-                    </div>
-                    <div>
-                      <span>统一调价幅度</span>
-                      <strong
-                        className={
-                          weightPriceAdjustment
-                            ? weightPriceAdjustment >= 1
-                              ? "positive"
-                              : "negative"
-                            : undefined
-                        }
-                      >
-                        {weightPriceAdjustment
-                          ? `${weightPriceAdjustment >= 1 ? "+" : ""}${formatPercent(weightPriceAdjustment - 1)}`
-                          : "—"}
-                      </strong>
-                      <small>建议单价 ÷ 当前件均成本</small>
-                    </div>
-                    <div>
-                      <span>测算目标时薪</span>
-                      <strong>
-                        {targetUnitPrice
-                          ? `$${formatNumber(targetUnitPrice * selectedPostalSalary.salaryBasisPph, 2)}/h`
-                          : "—"}
-                      </strong>
-                      <small>建议综合单价 × 薪资文件效率基准</small>
-                    </div>
-                  </div>
-                </div>
-                <div className="calculator-formula">
-                  <CircleDot size={14} />
-                  <span>
-                    重量段建议价 = 当前重量段单价 ×（目标综合单价 ÷ 当前件均DSP成本）。
-                    展示时薪直接取薪资文件，计算器仅使用该文件同期效率基准。
-                  </span>
-                </div>
-              </section>
-            </div>
-          </aside>
-        </div>
-      ) : null}
     </div>
   );
 }

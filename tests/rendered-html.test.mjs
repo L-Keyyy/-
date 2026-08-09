@@ -37,12 +37,13 @@ test("server-renders the PPH weekly dashboard shell", async () => {
 });
 
 test("ships the associated starter dataset and removes disposable preview code", async () => {
-  const [page, analytics, layout, packageJson, initialData] = await Promise.all([
+  const [page, analytics, layout, packageJson, initialData, styles] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/analytics.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../public/data/initial.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(page, /路区名称/);
@@ -63,7 +64,7 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.match(page, /手动输入DSP名称/);
   assert.match(page, /路区重点名单/);
   assert.match(page, /邮编重点名单/);
-  assert.match(page, /路区-邮编搜索/);
+  assert.doesNotMatch(page, /路区-邮编搜索/);
   assert.match(page, /路区全量数据/);
   assert.match(page, /邮编全量数据/);
   assert.doesNotMatch(page, /label: "路区难易度全量数据"/);
@@ -84,13 +85,13 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.match(page, /在途时长为0/);
   assert.match(page, /均值补齐/);
   assert.match(page, /estimatedTransitCount/);
-  assert.match(page, /路区邮编时薪/);
-  assert.match(page, /重量分段单价/);
-  assert.match(page, /目标时薪单价计算器/);
-  assert.match(page, /建议综合单价/);
-  assert.match(page, /重量段建议价/);
-  assert.match(page, /routePostalSalaryRows/);
-  assert.match(page, /postalWeightCosts/);
+  assert.doesNotMatch(page, /路区邮编时薪/);
+  assert.doesNotMatch(page, /重量分段单价/);
+  assert.doesNotMatch(page, /目标时薪单价计算器/);
+  assert.doesNotMatch(page, /建议综合单价/);
+  assert.doesNotMatch(page, /重量段建议价/);
+  assert.doesNotMatch(page, /routePostalSalaryRows/);
+  assert.doesNotMatch(page, /postalWeightCosts/);
   assert.match(page, /selectedRouteContext/);
   assert.match(page, /该路区全部邮编/);
   assert.match(page, /识别状态/);
@@ -115,8 +116,7 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.match(page, /P75 \/ P25 路区观察/);
   assert.match(page, /返回路区/);
   assert.match(page, /route-change-summary/);
-  assert.match(page, /不使用当前周PPH重新计算/);
-  assert.match(page, /薪资文件效率基准/);
+  assert.doesNotMatch(page, /薪资文件效率基准/);
   assert.match(page, /addressDistributionDifference/);
   assert.match(page, /商业、公寓、学校、山区等难送地址按1\.5倍加权/);
   assert.match(page, /PPH仅作为结果对比，不参与相似度排名/);
@@ -137,6 +137,9 @@ test("ships the associated starter dataset and removes disposable preview code",
     page,
     /eyebrow="TIME MIX"[\s\S]{0,200}title="耗时结构"/,
   );
+  assert.match(styles, /\.postal-time-list/);
+  assert.match(styles, /\.postal-time-list \.address-track span/);
+  assert.match(styles, /\.average-basis-note/);
   assert.match(layout, /PPH周报系统/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.doesNotMatch(page, /_sites-preview|SkeletonPreview/);

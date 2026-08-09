@@ -50,11 +50,6 @@ export type PostalCost = {
   averageDspCost: number;
 };
 
-export type PostalWeightCost = PostalCost & {
-  weightBand: string;
-  priceType: string;
-};
-
 export type RouteProperty = {
   route: string;
   businessMode: string;
@@ -87,7 +82,6 @@ export type InitialData = {
     postalRows?: number;
     postalPropertyRows?: number;
     postalCostRows?: number;
-    postalWeightCostRows?: number;
     estimatedTransitRows?: number;
     estimatedPostalTransitRows?: number;
     generatedAt: string;
@@ -97,7 +91,6 @@ export type InitialData = {
   postalRecords?: PostalPerformanceRecord[];
   postalProperties?: PostalProperty[];
   postalCosts?: PostalCost[];
-  postalWeightCosts?: PostalWeightCost[];
 };
 
 export type RouteRow = PerformanceRecord & {

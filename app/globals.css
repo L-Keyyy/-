@@ -2476,6 +2476,89 @@ td .average-value-tag,
   font-weight: 700;
 }
 
+.postal-time-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.postal-time-list > div > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  color: var(--slate-600);
+  font-size: 8px;
+}
+
+.postal-time-list .address-track span {
+  background: linear-gradient(90deg, #50cbb1, #0891b2);
+}
+
+.average-basis-note {
+  margin: 9px 0 0;
+  padding: 7px 9px;
+  border: 1px solid #f3d1ad;
+  border-radius: 7px;
+  background: var(--orange-soft);
+  color: #965019;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.postal-route-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.postal-route-list button {
+  display: flex;
+  min-width: calc(50% - 3px);
+  flex: 1 1 calc(50% - 3px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--slate-200);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--blue);
+  text-align: left;
+}
+
+.postal-route-list button:not(:disabled):hover {
+  border-color: #a9c5fa;
+  background: var(--blue-soft);
+}
+
+.postal-route-list button:disabled {
+  color: var(--slate-500);
+  cursor: default;
+}
+
+.postal-route-list button > span:first-child,
+.postal-route-list button strong,
+.postal-route-list button small {
+  display: block;
+}
+
+.postal-route-list button strong {
+  font-size: 9px;
+}
+
+.postal-route-list button small {
+  margin-top: 2px;
+  color: var(--slate-500);
+  font-size: 7px;
+}
+
+.postal-route-list button > span:last-child {
+  flex: 0 0 auto;
+  font-size: 8px;
+  font-weight: 700;
+}
+
 .postal-history-list {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2626,407 +2709,6 @@ td .average-value-tag,
   }
 }
 
-.postal-salary-panel {
-  min-height: 330px;
-}
-
-.postal-salary-summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.postal-salary-summary span {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 8px 10px;
-  border: 1px solid var(--slate-200);
-  border-radius: 10px;
-  color: var(--slate-500);
-  background: var(--slate-50);
-  font-size: 11px;
-}
-
-.postal-salary-summary strong {
-  color: var(--navy-900);
-  font-size: 13px;
-}
-
-.postal-salary-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin: 10px 0 8px;
-}
-
-.postal-salary-toolbar .search-box {
-  width: min(320px, 100%);
-}
-
-.postal-salary-toolbar > span {
-  color: var(--slate-400);
-  font-size: 11px;
-}
-
-.postal-salary-table-wrap,
-.weight-price-table-wrap {
-  overflow: auto;
-  border: 1px solid var(--slate-200);
-  border-radius: 13px;
-}
-
-.postal-salary-table,
-.weight-price-table {
-  width: 100%;
-  border-collapse: collapse;
-  white-space: nowrap;
-}
-
-.postal-salary-table {
-  min-width: 540px;
-  table-layout: fixed;
-}
-
-.postal-salary-table th:nth-child(1) {
-  width: 13%;
-}
-
-.postal-salary-table th:nth-child(2) {
-  width: 19%;
-}
-
-.postal-salary-table th:nth-child(3),
-.postal-salary-table th:nth-child(4) {
-  width: 14%;
-}
-
-.postal-salary-table th:nth-child(5),
-.postal-salary-table th:nth-child(6) {
-  width: 20%;
-}
-
-.weight-price-table {
-  min-width: 700px;
-}
-
-.postal-salary-table th,
-.postal-salary-table td,
-.weight-price-table th,
-.weight-price-table td {
-  padding: 9px 11px;
-  border-bottom: 1px solid var(--slate-100);
-  color: var(--slate-600);
-  text-align: right;
-  font-size: 11px;
-}
-
-.postal-salary-table th,
-.postal-salary-table td {
-  padding-block: 7px;
-  font-size: 10px;
-  line-height: 1.25;
-}
-
-.postal-salary-table th,
-.weight-price-table th {
-  position: sticky;
-  z-index: 1;
-  top: 0;
-  color: var(--slate-500);
-  background: #f8faff;
-  font-weight: 600;
-}
-
-.postal-salary-table th:first-child,
-.postal-salary-table td:first-child,
-.postal-salary-table th:nth-child(2),
-.postal-salary-table td:nth-child(2),
-.weight-price-table th:first-child,
-.weight-price-table td:first-child,
-.weight-price-table th:nth-child(2),
-.weight-price-table td:nth-child(2) {
-  text-align: left;
-}
-
-.postal-salary-table tbody tr:last-child td,
-.weight-price-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.postal-salary-table tbody tr:hover,
-.weight-price-table tbody tr:hover {
-  background: #f8fbff;
-}
-
-.postal-salary-row {
-  cursor: pointer;
-  transition:
-    background 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.postal-salary-row:hover {
-  background: #f1f6ff !important;
-  box-shadow: inset 3px 0 0 var(--blue-600);
-}
-
-.postal-salary-row:focus-visible {
-  outline: 2px solid var(--blue-500);
-  outline-offset: -2px;
-  background: #f1f6ff;
-}
-
-.postal-salary-table td strong,
-.weight-price-table td strong {
-  color: var(--navy-900);
-}
-
-.postal-wage-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 5px;
-  min-width: 82px;
-  border: 0;
-  color: var(--blue-600);
-  background: transparent;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.postal-wage-button:hover:not(:disabled) {
-  color: var(--blue-700);
-  text-decoration: underline;
-}
-
-.postal-wage-button:disabled {
-  color: var(--slate-400);
-  cursor: default;
-}
-
-.postal-price-drawer {
-  width: min(790px, 96vw);
-}
-
-.postal-price-head {
-  display: grid;
-  grid-template-columns: minmax(210px, 1fr) auto auto;
-  align-items: center;
-  gap: 24px;
-  background: linear-gradient(125deg, #0b2a5f 0%, #0b4863 100%);
-}
-
-.postal-price-head > div:first-child > span,
-.postal-price-head > div:first-child > p {
-  color: #a8c7ef;
-}
-
-.postal-price-head-metrics {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.postal-price-head-metrics > span {
-  display: flex;
-  min-width: 110px;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.17);
-  border-radius: 11px;
-  color: #a8c7ef;
-  background: rgba(255, 255, 255, 0.07);
-  font-size: 10px;
-}
-
-.postal-price-head-metrics strong {
-  color: #fff;
-  font-size: 16px;
-}
-
-.postal-price-scroll {
-  padding: 26px;
-}
-
-.weight-price-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
-.weight-price-title-row .drawer-section-title {
-  margin-bottom: 0;
-}
-
-.drawer-section-title > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.drawer-section-title > div span {
-  color: var(--slate-400);
-  font-size: 10px;
-  font-weight: 400;
-}
-
-.weight-price-search {
-  width: 245px;
-  flex: 0 0 auto;
-}
-
-.weight-price-table-wrap {
-  max-height: 410px;
-}
-
-.weight-price-table th,
-.weight-price-table td {
-  padding-block: 10px;
-}
-
-.price-type-badge {
-  display: inline-flex;
-  padding: 4px 7px;
-  border-radius: 999px;
-  color: #425777;
-  background: #eef3fb;
-  font-size: 10px;
-}
-
-.weight-price-table td.has-target {
-  color: var(--green-600);
-  background: #effbf6;
-  font-weight: 800;
-}
-
-.wage-calculator {
-  position: fixed;
-  z-index: 82;
-  top: 50%;
-  left: 28px;
-  width: min(520px, calc(100vw - 850px));
-  max-height: calc(100vh - 56px);
-  overflow-y: auto;
-  transform: translateY(-50%);
-  border-color: #cfe0ff;
-  background: linear-gradient(145deg, #fff 0%, #f4f8ff 100%);
-  box-shadow: 0 22px 65px rgba(7, 26, 58, 0.24);
-}
-
-.wage-calculator .calculator-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-}
-
-.calculator-input-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 15px;
-  border: 1px solid #bfd4ff;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.calculator-input-card > span {
-  color: var(--slate-500);
-  font-size: 11px;
-}
-
-.calculator-input-card > div {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border: 1px solid var(--blue-200);
-  border-radius: 9px;
-  background: #f8fbff;
-}
-
-.calculator-input-card b,
-.calculator-input-card em {
-  color: var(--blue-600);
-  font-style: normal;
-  font-weight: 700;
-}
-
-.calculator-input-card input {
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  color: var(--navy-900);
-  background: transparent;
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.calculator-input-card small {
-  color: var(--slate-400);
-  font-size: 10px;
-}
-
-.calculator-results {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px;
-}
-
-.calculator-results > div {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px 12px;
-  border: 1px solid var(--slate-200);
-  border-radius: 12px;
-  background: #fff;
-}
-
-.calculator-results span,
-.calculator-results small {
-  color: var(--slate-400);
-  font-size: 9px;
-}
-
-.calculator-results strong {
-  color: var(--navy-900);
-  font-size: 15px;
-}
-
-.calculator-results strong.positive {
-  color: var(--green-600);
-}
-
-.calculator-results strong.negative {
-  color: var(--orange-600);
-}
-
-.calculator-formula {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: 9px;
-  color: #536783;
-  background: #eaf2ff;
-  font-size: 10px;
-  line-height: 1.6;
-}
-
-.calculator-formula svg {
-  flex: 0 0 auto;
-  margin-top: 1px;
-  color: var(--blue-600);
-}
-
 @media (max-width: 1380px) {
   .metrics-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3038,15 +2720,6 @@ td .average-value-tag,
 }
 
 @media (max-width: 1100px) {
-  .wage-calculator {
-    position: static;
-    width: auto;
-    max-height: none;
-    overflow: visible;
-    transform: none;
-    box-shadow: none;
-  }
-
   .sidebar {
     width: 224px;
   }
@@ -3165,23 +2838,6 @@ td .average-value-tag,
     border-left: 0;
   }
 
-  .postal-price-head {
-    grid-template-columns: 1fr auto;
-  }
-
-  .postal-price-head-metrics {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  .postal-price-head > button {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .calculator-layout {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 600px) {
@@ -3299,30 +2955,4 @@ td .average-value-tag,
     width: 100%;
   }
 
-  .postal-salary-toolbar,
-  .weight-price-title-row {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .postal-salary-toolbar .search-box,
-  .weight-price-search {
-    width: 100%;
-  }
-
-  .postal-salary-toolbar > span {
-    line-height: 1.5;
-  }
-
-  .postal-price-scroll {
-    padding: 16px 12px;
-  }
-
-  .postal-price-head-metrics {
-    overflow: auto;
-  }
-
-  .calculator-results {
-    grid-template-columns: 1fr;
-  }
 }

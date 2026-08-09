@@ -44,9 +44,6 @@ const scoped = {
     postalCostRows: (data.postalCosts ?? []).filter(
       (row) => row.region === regionCode && postalCodes.has(row.postalCode),
     ).length,
-    postalWeightCostRows: (data.postalWeightCosts ?? []).filter(
-      (row) => row.region === regionCode && routeKeys.has(row.route),
-    ).length,
     generatedAt: new Date().toISOString(),
   },
   records,
@@ -59,9 +56,6 @@ const scoped = {
   ),
   postalCosts: (data.postalCosts ?? []).filter(
     (row) => row.region === regionCode && postalCodes.has(row.postalCode),
-  ),
-  postalWeightCosts: (data.postalWeightCosts ?? []).filter(
-    (row) => row.region === regionCode && routeKeys.has(row.route),
   ),
 };
 
