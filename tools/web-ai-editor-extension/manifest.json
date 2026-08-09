@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Web AI 页面修改器",
+  "version": "1.0.0",
+  "description": "在任意网页上框选模块、删除、移动、新增、批注、撤回，并导出给 AI 的结构化修改单。",
+  "permissions": ["activeTab", "scripting", "storage", "downloads"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "打开 Web AI 页面修改器"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "打开或关闭可视化修改模式"
+    }
+  }
+}

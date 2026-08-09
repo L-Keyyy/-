@@ -1,5 +1,7 @@
 import type {
   PerformanceRecord,
+  PostalPerformanceRecord,
+  PostalRow,
   RouteProperty,
   RouteRow,
 } from "../types";
@@ -36,6 +38,88 @@ export function pph(attempted: number, hours: number) {
 
 export function failRate(delivered: number, attempted: number) {
   return attempted > 0 ? Math.max(0, attempted - delivered) / attempted : 0;
+}
+
+type TransitRecord = {
+  week: string;
+  region: string;
+  site: string;
+  delivered: number;
+  attempted: number;
+  sortHours: number;
+  transitHours: number;
+  deliveryHours: number;
+  totalHours: number;
+  transitHoursEstimated?: boolean;
+  transitHoursAverageBasis?: string;
+  estimatedTransitRows?: number;
+};
+
+export function imputeTransitHours<T extends TransitRecord>(records: T[]) {
+  type AverageBucket = { hours: number; volume: number; rows: number };
+  const siteWeek = new Map<string, AverageBucket>();
+  const regionWeek = new Map<string, AverageBucket>();
+  const global: AverageBucket = { hours: 0, volume: 0, rows: 0 };
+  const add = (map: Map<string, AverageBucket>, key: string, row: T) => {
+    const current = map.get(key) ?? { hours: 0, volume: 0, rows: 0 };
+    current.hours += row.transitHours;
+    current.volume += row.attempted;
+    current.rows += 1;
+    map.set(key, current);
+  };
+
+  records.forEach((row) => {
+    if (
+      row.transitHours <= 0 ||
+      row.attempted <= 0 ||
+      row.delivered < 100 ||
+      row.delivered > row.attempted ||
+      row.totalHours <= 0
+    )
+      return;
+    add(siteWeek, `${row.region}¦${row.week}¦${row.site}`, row);
+    add(regionWeek, `${row.region}¦${row.week}`, row);
+    global.hours += row.transitHours;
+    global.volume += row.attempted;
+    global.rows += 1;
+  });
+
+  let imputed = 0;
+  const imputedByBasis: Record<string, number> = {};
+  const updated = records.map((row) => {
+    if (row.transitHours > 0 || row.attempted <= 0) return row;
+    const siteBucket = siteWeek.get(`${row.region}¦${row.week}¦${row.site}`);
+    const regionBucket = regionWeek.get(`${row.region}¦${row.week}`);
+    const [bucket, basis] =
+      siteBucket && siteBucket.rows >= 3 && siteBucket.volume > 0
+        ? [siteBucket, "同站点同周单均在途时长均值"]
+        : regionBucket && regionBucket.rows >= 3 && regionBucket.volume > 0
+          ? [regionBucket, "同大区同周单均在途时长均值"]
+          : [global, "全量单均在途时长均值"];
+    if (!bucket || bucket.volume <= 0) return row;
+    const estimatedHours = Number(
+      ((bucket.hours / bucket.volume) * row.attempted).toFixed(2),
+    );
+    if (estimatedHours <= 0) return row;
+    const componentWithoutTransit = row.sortHours + row.deliveryHours;
+    const totalOmitsTransit =
+      Math.abs(row.totalHours - componentWithoutTransit) <=
+      Math.max(0.05, row.totalHours * 0.02);
+    imputed += 1;
+    imputedByBasis[basis] = (imputedByBasis[basis] ?? 0) + 1;
+    return {
+      ...row,
+      transitHours: estimatedHours,
+      totalHours: totalOmitsTransit
+        ? Number((row.totalHours + estimatedHours).toFixed(2))
+        : row.totalHours,
+      transitHoursEstimated: true,
+      transitHoursAverageBasis: basis,
+      estimatedTransitRows: 1,
+    };
+  });
+
+  return { records: updated, imputed, imputedByBasis };
 }
 
 export function sortWeeks(weeks: string[]) {
@@ -142,6 +226,29 @@ export function cleanPerformanceRecords(records: PerformanceRecord[]) {
   };
 }
 
+export function cleanPostalPerformanceRecords(
+  records: PostalPerformanceRecord[],
+) {
+  const converted = records.map((row) => ({
+    ...row,
+    route: row.route || row.postalCode,
+  }));
+  const cleaned = cleanPerformanceRecords(converted);
+  return {
+    ...cleaned,
+    records: cleaned.records.map((row) => {
+      const postalRow = row as PostalPerformanceRecord;
+      return {
+        ...postalRow,
+        route:
+          postalRow.route === postalRow.postalCode
+            ? undefined
+            : postalRow.route,
+      };
+    }),
+  };
+}
+
 export function aggregatePerformance(records: PerformanceRecord[]) {
   const aggregate = records.reduce(
     (current, row) => {
@@ -169,6 +276,44 @@ export function aggregatePerformance(records: PerformanceRecord[]) {
     successPph: pph(aggregate.delivered, aggregate.totalHours),
     failRate: failRate(aggregate.delivered, aggregate.attempted),
   };
+}
+
+export function aggregatePostalRows(
+  records: PostalPerformanceRecord[],
+): PostalRow[] {
+  const grouped = new Map<string, PostalPerformanceRecord>();
+  records.forEach((row) => {
+    const key = `${row.postalCode}¦${row.site}¦${row.dsp}¦${row.route ?? ""}`;
+    const current = grouped.get(key) ?? {
+      ...row,
+      delivered: 0,
+      attempted: 0,
+      sortHours: 0,
+      transitHours: 0,
+      deliveryHours: 0,
+      totalHours: 0,
+      estimatedTransitRows: 0,
+    };
+    current.delivered += row.delivered;
+    current.attempted += row.attempted;
+    current.sortHours += row.sortHours;
+    current.transitHours += row.transitHours;
+    current.deliveryHours += row.deliveryHours;
+    current.totalHours += row.totalHours;
+    current.estimatedTransitRows =
+      (current.estimatedTransitRows ?? 0) +
+      (row.transitHoursEstimated ? 1 : row.estimatedTransitRows ?? 0);
+    if (row.transitHoursEstimated && row.transitHoursAverageBasis) {
+      current.transitHoursAverageBasis = row.transitHoursAverageBasis;
+    }
+    grouped.set(key, current);
+  });
+  return [...grouped.values()].map((row) => ({
+    ...row,
+    operationPph: pph(row.attempted, row.totalHours),
+    successPph: pph(row.delivered, row.totalHours),
+    failRate: failRate(row.delivered, row.attempted),
+  }));
 }
 
 export function aggregateRouteRows(
@@ -236,7 +381,11 @@ function groupRows(records: PerformanceRecord[]) {
     const key = rowKey(row);
     const current = grouped.get(key);
     if (!current) {
-      grouped.set(key, { ...row });
+      grouped.set(key, {
+        ...row,
+        estimatedTransitRows:
+          row.estimatedTransitRows ?? (row.transitHoursEstimated ? 1 : 0),
+      });
       continue;
     }
     current.delivered += row.delivered || 0;
@@ -245,6 +394,12 @@ function groupRows(records: PerformanceRecord[]) {
     current.transitHours += row.transitHours || 0;
     current.deliveryHours += row.deliveryHours || 0;
     current.totalHours += row.totalHours || 0;
+    current.estimatedTransitRows =
+      (current.estimatedTransitRows ?? 0) +
+      (row.estimatedTransitRows ?? (row.transitHoursEstimated ? 1 : 0));
+    if (row.transitHoursEstimated && row.transitHoursAverageBasis) {
+      current.transitHoursAverageBasis = row.transitHoursAverageBasis;
+    }
   }
   return grouped;
 }

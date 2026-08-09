@@ -1,0 +1,438 @@
+:root {
+  --wae-blue: #2563eb;
+  --wae-navy: #0b2451;
+  --wae-green: #16a36a;
+  --wae-red: #dc4c56;
+  --wae-orange: #e9852d;
+  --wae-slate: #64748b;
+  --wae-line: #dbe5f1;
+  --wae-canvas: #f5f8fc;
+}
+
+.wae-page-hovered {
+  outline: 2px dashed var(--wae-blue) !important;
+  outline-offset: 3px !important;
+  cursor: crosshair !important;
+}
+
+.wae-page-selected {
+  outline: 3px solid var(--wae-blue) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.12) !important;
+}
+
+.wae-page-placeholder {
+  box-sizing: border-box !important;
+  min-height: 96px !important;
+  margin: 12px 0 !important;
+  padding: 22px !important;
+  border: 2px dashed #7aa7f8 !important;
+  border-radius: 12px !important;
+  background: #edf4ff !important;
+  color: #174ea6 !important;
+  font: 600 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  text-align: center !important;
+}
+
+#wae-root,
+#wae-root * {
+  box-sizing: border-box;
+}
+
+#wae-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  color: #17253b;
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  pointer-events: none;
+}
+
+#wae-root button,
+#wae-root input,
+#wae-root textarea {
+  font: inherit;
+}
+
+.wae-toolbar {
+  position: fixed;
+  top: 14px;
+  right: 378px;
+  left: 14px;
+  display: flex;
+  max-width: none;
+  align-items: center;
+  gap: 5px;
+  padding: 7px;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 13px;
+  background: rgba(11, 36, 81, 0.97);
+  box-shadow: 0 18px 44px rgba(15, 35, 70, 0.28);
+  pointer-events: auto;
+  backdrop-filter: blur(15px);
+}
+
+.wae-brand {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px 0 4px;
+  color: #fff;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.wae-brand-mark {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border-radius: 7px;
+  background: linear-gradient(145deg, #5d9bff, #2563eb);
+  font-size: 12px;
+}
+
+.wae-divider {
+  width: 1px;
+  height: 26px;
+  flex: 0 0 auto;
+  margin: 0 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.wae-tool-button {
+  display: inline-flex;
+  min-width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.wae-tool-button:hover {
+  background: rgba(255, 255, 255, 0.17);
+}
+
+.wae-tool-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.wae-tool-button.is-active {
+  border-color: #8ab5ff;
+  background: #2563eb;
+}
+
+.wae-tool-button.is-danger {
+  color: #ffdfe2;
+}
+
+.wae-tool-button.is-primary {
+  background: #fff;
+  color: #12356b;
+  font-weight: 700;
+}
+
+.wae-panel {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  width: 350px;
+  max-height: calc(100vh - 28px);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--wae-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 22px 60px rgba(18, 43, 80, 0.24);
+  pointer-events: auto;
+}
+
+.wae-panel-head {
+  padding: 14px 15px 12px;
+  background: linear-gradient(135deg, #0b2451, #123f7d);
+  color: #fff;
+}
+
+.wae-panel-head-row,
+.wae-selection-meta,
+.wae-change-top,
+.wae-panel-actions,
+.wae-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wae-panel-title {
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.wae-close-button {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+}
+
+.wae-selection-card {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.wae-selection-label {
+  color: #b8d3ff;
+  font-size: 11px;
+}
+
+.wae-selection-name {
+  margin-top: 3px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wae-selection-meta {
+  margin-top: 4px;
+  justify-content: flex-start;
+  color: #cbdcff;
+  font-size: 10px;
+}
+
+.wae-panel-actions {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--wae-line);
+}
+
+.wae-panel-actions button {
+  flex: 1;
+  padding: 7px 8px;
+  border: 1px solid var(--wae-line);
+  border-radius: 7px;
+  background: #f8faff;
+  color: #24405f;
+  cursor: pointer;
+}
+
+.wae-panel-actions button:hover {
+  border-color: #9ebdf6;
+  background: #edf4ff;
+}
+
+.wae-change-list {
+  min-height: 160px;
+  flex: 1;
+  padding: 10px 12px;
+  overflow-y: auto;
+  background: var(--wae-canvas);
+}
+
+.wae-change-empty {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  padding: 20px;
+  color: var(--wae-slate);
+  text-align: center;
+}
+
+.wae-change-item {
+  margin-bottom: 8px;
+  padding: 10px;
+  border: 1px solid var(--wae-line);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.wae-change-index {
+  display: grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border-radius: 6px;
+  background: #edf4ff;
+  color: var(--wae-blue);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.wae-change-action {
+  flex: 1;
+  font-weight: 700;
+}
+
+.wae-change-time {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.wae-change-target {
+  margin-top: 6px;
+  overflow: hidden;
+  color: #52657f;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wae-change-detail {
+  display: -webkit-box;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #8090a4;
+  font-size: 10px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.wae-status-bar {
+  padding: 9px 12px;
+  border-top: 1px solid var(--wae-line);
+  color: #64748b;
+  font-size: 10px;
+}
+
+.wae-status-count {
+  color: var(--wae-blue);
+  font-weight: 700;
+}
+
+.wae-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(8, 25, 51, 0.42);
+  pointer-events: auto;
+  backdrop-filter: blur(3px);
+}
+
+.wae-modal.is-open {
+  display: flex;
+}
+
+.wae-modal-dialog {
+  width: min(460px, calc(100vw - 40px));
+  padding: 18px;
+  border: 1px solid var(--wae-line);
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(10, 30, 60, 0.3);
+}
+
+.wae-modal-title {
+  color: #17253b;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.wae-modal-label {
+  display: block;
+  margin: 12px 0 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.wae-modal textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 11px;
+  resize: vertical;
+  border: 1px solid var(--wae-line);
+  outline: 0;
+  border-radius: 8px;
+  background: #fbfcff;
+  color: #17253b;
+  line-height: 1.55;
+}
+
+.wae-modal textarea:focus {
+  border-color: #7ca8f7;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.wae-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.wae-modal-actions button {
+  min-width: 76px;
+  padding: 8px 13px;
+  border: 1px solid var(--wae-line);
+  border-radius: 7px;
+  background: #fff;
+  color: #52657f;
+  cursor: pointer;
+}
+
+.wae-modal-actions button.is-primary {
+  border-color: var(--wae-blue);
+  background: var(--wae-blue);
+  color: #fff;
+  font-weight: 700;
+}
+
+.wae-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  max-width: min(520px, calc(100vw - 40px));
+  padding: 10px 14px;
+  border-radius: 9px;
+  background: #10203a;
+  box-shadow: 0 12px 28px rgba(15, 35, 65, 0.28);
+  color: #fff;
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  transition: 180ms ease;
+  pointer-events: none;
+}
+
+.wae-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (max-width: 980px) {
+  .wae-toolbar {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    transform: none;
+  }
+
+  .wae-panel {
+    top: 66px;
+    right: 10px;
+    width: min(350px, calc(100vw - 20px));
+    max-height: calc(100vh - 76px);
+  }
+}
