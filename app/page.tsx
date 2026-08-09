@@ -968,7 +968,14 @@ export default function Home() {
         borderWidth: 0,
         padding: [10, 12],
         textStyle: { color: "#fff", fontSize: 11 },
-        axisPointer: { type: "shadow", shadowStyle: { color: "#edf4ff" } },
+        axisPointer: {
+          type: "line",
+          lineStyle: {
+            color: "#b7c7df",
+            width: 1,
+            type: "dashed",
+          },
+        },
         formatter: (
           params: Array<{
             axisValue: string;
