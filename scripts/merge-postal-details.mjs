@@ -6,11 +6,12 @@ const [
   routePostalFile,
   costFile,
   dataFile = "public/data/initial.json",
+  postalDataFile = "public/data/postal-records.json",
 ] = process.argv.slice(2);
 
 if (!difficultyFile || !routePostalFile || !costFile) {
   console.error(
-    "Usage: node scripts/merge-postal-details.mjs <邮编难易度.xlsx> <站点路区邮编对应表.xlsx> <DSP成本.xlsx> [initial.json]",
+    "Usage: node scripts/merge-postal-details.mjs <邮编难易度.xlsx> <站点路区邮编对应表.xlsx> <DSP成本.xlsx> [initial.json] [postal-records.json]",
   );
   process.exit(1);
 }
@@ -139,7 +140,9 @@ initialData.meta = {
 fs.writeFileSync(dataFile, JSON.stringify(initialData), "utf8");
 
 const performanceZips = new Set(
-  (initialData.postalRecords ?? []).map((row) => row.postalCode),
+  JSON.parse(fs.readFileSync(postalDataFile, "utf8")).postalRecords.map(
+    (row) => row.postalCode,
+  ),
 );
 const propertyZips = new Set(
   initialData.postalProperties.map((row) => row.postalCode),

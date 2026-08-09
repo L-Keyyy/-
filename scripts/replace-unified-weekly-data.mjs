@@ -14,6 +14,7 @@ const files = args.length
     }))
   : defaultFiles;
 const dataFile = "public/data/initial.json";
+const postalDataFile = "public/data/postal-records.json";
 const weekStarts = {
   W27: "2026-06-29T00:00:00.000Z",
   W28: "2026-07-06T00:00:00.000Z",
@@ -290,7 +291,6 @@ const postalProperties = [...postalBuckets.entries()]
   );
 
 initialData.records = records;
-initialData.postalRecords = postalRecords;
 initialData.properties = properties;
 initialData.postalProperties = postalProperties;
 initialData.meta = {
@@ -304,6 +304,11 @@ initialData.meta = {
 };
 
 fs.writeFileSync(dataFile, JSON.stringify(initialData), "utf8");
+fs.writeFileSync(
+  postalDataFile,
+  JSON.stringify({ meta: { postalRows: postalRecords.length }, postalRecords }),
+  "utf8",
+);
 
 console.log(
   JSON.stringify(

@@ -25,6 +25,13 @@ const initialPayload = JSON.parse(
     "utf8",
   ),
 );
+const postalPayload = JSON.parse(
+  fs.readFileSync(
+    path.join(projectRoot, "public", "data", "postal-records.json"),
+    "utf8",
+  ),
+);
+initialPayload.postalRecords = postalPayload.postalRecords;
 const lockedRegionCode = "WE";
 const lockedRegionSource = "美西大区";
 initialPayload.records = initialPayload.records.filter(

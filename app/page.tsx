@@ -545,10 +545,20 @@ export default function Home() {
       return;
     }
 
-    fetch("/data/initial.json")
-      .then((response) => {
-        if (!response.ok) throw new Error("Initial data is not available.");
-        return response.json() as Promise<InitialData>;
+    Promise.all([
+      fetch("/data/initial.json"),
+      fetch("/data/postal-records.json"),
+    ])
+      .then(async ([initialResponse, postalResponse]) => {
+        if (!initialResponse.ok || !postalResponse.ok)
+          throw new Error("Initial data is not available.");
+        const [data, postalData] = await Promise.all([
+          initialResponse.json() as Promise<InitialData>,
+          postalResponse.json() as Promise<{
+            postalRecords: PostalPerformanceRecord[];
+          }>,
+        ]);
+        return { ...data, postalRecords: postalData.postalRecords };
       })
       .then(applyInitialData)
       .catch(() => {

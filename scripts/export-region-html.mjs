@@ -17,6 +17,10 @@ const htmlFile = process.argv[4] ?? "public/PPH周报系统-交互版.html";
 const outputFile =
   process.argv[5] ?? `/Users/gl001426/Downloads/${region.name}PPH周报.html`;
 const data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+const postalDataFile = process.argv[6] ?? "public/data/postal-records.json";
+data.postalRecords = JSON.parse(
+  fs.readFileSync(postalDataFile, "utf8"),
+).postalRecords;
 const records = data.records.filter((row) => row.region === region.source);
 const routeKeys = new Set(records.map((row) => row.route));
 const postalRecords = (data.postalRecords ?? []).filter(

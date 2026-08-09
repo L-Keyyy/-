@@ -1,11 +1,15 @@
 import fs from "node:fs";
 import XLSX from "xlsx";
 
-const [postalFile, dataFile = "public/data/initial.json"] = process.argv.slice(2);
+const [
+  postalFile,
+  dataFile = "public/data/initial.json",
+  postalDataFile = "public/data/postal-records.json",
+] = process.argv.slice(2);
 
 if (!postalFile) {
   console.error(
-    "Usage: node scripts/merge-postal-data.mjs <postal.csv|xlsx> [initial.json]",
+    "Usage: node scripts/merge-postal-data.mjs <postal.csv|xlsx> [initial.json] [postal-records.json]",
   );
   process.exit(1);
 }
@@ -68,22 +72,27 @@ for (const row of rows) {
 }
 
 const initialData = JSON.parse(fs.readFileSync(dataFile, "utf8"));
-initialData.postalRecords = [...grouped.values()];
+const postalRecords = [...grouped.values()];
 initialData.meta = {
   ...initialData.meta,
-  postalRows: initialData.postalRecords.length,
+  postalRows: postalRecords.length,
   generatedAt: new Date().toISOString(),
 };
 fs.writeFileSync(dataFile, JSON.stringify(initialData), "utf8");
+fs.writeFileSync(
+  postalDataFile,
+  JSON.stringify({ meta: { postalRows: postalRecords.length }, postalRecords }),
+  "utf8",
+);
 
 console.log(
   JSON.stringify(
     {
       sourceRows: rows.length,
-      postalRows: initialData.postalRecords.length,
-      weeks: [...new Set(initialData.postalRecords.map((row) => row.week))],
+      postalRows: postalRecords.length,
+      weeks: [...new Set(postalRecords.map((row) => row.week))],
       postalCodes: new Set(
-        initialData.postalRecords.map((row) => row.postalCode),
+        postalRecords.map((row) => row.postalCode),
       ).size,
     },
     null,

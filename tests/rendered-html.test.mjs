@@ -43,6 +43,7 @@ test("ships the associated starter dataset and removes disposable preview code",
     layout,
     packageJson,
     initialData,
+    postalRecordsData,
     postalWeightData,
     styles,
   ] = await Promise.all([
@@ -51,6 +52,10 @@ test("ships the associated starter dataset and removes disposable preview code",
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../public/data/initial.json", import.meta.url), "utf8"),
+    readFile(
+      new URL("../public/data/postal-records.json", import.meta.url),
+      "utf8",
+    ),
     readFile(
       new URL("../public/data/postal-weight-costs.json", import.meta.url),
       "utf8",
@@ -158,7 +163,10 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.match(layout, /PPH周报系统/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.doesNotMatch(page, /_sites-preview|SkeletonPreview/);
-  const parsedInitialData = JSON.parse(initialData);
+  const parsedInitialData = {
+    ...JSON.parse(initialData),
+    postalRecords: JSON.parse(postalRecordsData).postalRecords,
+  };
   const parsedPostalWeightData = JSON.parse(postalWeightData);
   assert.ok(parsedInitialData.records.length > 1000);
   assert.ok(parsedInitialData.postalRecords.length > 1000);
