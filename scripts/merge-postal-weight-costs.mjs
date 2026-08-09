@@ -1,10 +1,14 @@
 import fs from "node:fs";
 import XLSX from "xlsx";
 
-const [costFile, dataFile = "public/data/initial.json"] = process.argv.slice(2);
+const [
+  costFile,
+  dataFile = "public/data/initial.json",
+  weightDataFile = "public/data/postal-weight-costs.json",
+] = process.argv.slice(2);
 if (!costFile) {
   console.error(
-    "Usage: node scripts/merge-postal-weight-costs.mjs <DSP成本.xlsx> [initial.json]",
+    "Usage: node scripts/merge-postal-weight-costs.mjs <DSP成本.xlsx> [initial.json] [postal-weight-costs.json]",
   );
   process.exit(1);
 }
@@ -89,14 +93,21 @@ for (const row of weightGroups.values()) {
 }
 
 initialData.postalCosts = [...postalGroups.values()];
-initialData.postalWeightCosts = [...weightGroups.values()];
+const postalWeightCosts = [...weightGroups.values()];
 initialData.meta = {
   ...initialData.meta,
   postalCostRows: initialData.postalCosts.length,
-  postalWeightCostRows: initialData.postalWeightCosts.length,
   generatedAt: new Date().toISOString(),
 };
 fs.writeFileSync(dataFile, JSON.stringify(initialData), "utf8");
+fs.writeFileSync(
+  weightDataFile,
+  JSON.stringify({
+    meta: { postalWeightCostRows: postalWeightCosts.length },
+    postalWeightCosts,
+  }),
+  "utf8",
+);
 
 console.log(
   JSON.stringify(
@@ -104,11 +115,11 @@ console.log(
       sourceRows: rows.length,
       activeRoutes: activeRoutes.size,
       postalCostRows: initialData.postalCosts.length,
-      postalWeightCostRows: initialData.postalWeightCosts.length,
+      postalWeightCostRows: postalWeightCosts.length,
       coveredRoutes: new Set(initialData.postalCosts.map((row) => row.route))
         .size,
-      weightBands: [...new Set(initialData.postalWeightCosts.map((row) => row.weightBand))],
-      priceTypes: [...new Set(initialData.postalWeightCosts.map((row) => row.priceType))],
+      weightBands: [...new Set(postalWeightCosts.map((row) => row.weightBand))],
+      priceTypes: [...new Set(postalWeightCosts.map((row) => row.priceType))],
     },
     null,
     2,

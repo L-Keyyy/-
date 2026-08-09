@@ -37,12 +37,24 @@ test("server-renders the PPH weekly dashboard shell", async () => {
 });
 
 test("ships the associated starter dataset and removes disposable preview code", async () => {
-  const [page, analytics, layout, packageJson, initialData, styles] = await Promise.all([
+  const [
+    page,
+    analytics,
+    layout,
+    packageJson,
+    initialData,
+    postalWeightData,
+    styles,
+  ] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/analytics.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../public/data/initial.json", import.meta.url), "utf8"),
+    readFile(
+      new URL("../public/data/postal-weight-costs.json", import.meta.url),
+      "utf8",
+    ),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -147,11 +159,12 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.doesNotMatch(page, /_sites-preview|SkeletonPreview/);
   const parsedInitialData = JSON.parse(initialData);
+  const parsedPostalWeightData = JSON.parse(postalWeightData);
   assert.ok(parsedInitialData.records.length > 1000);
   assert.ok(parsedInitialData.postalRecords.length > 1000);
   assert.ok(parsedInitialData.postalProperties.length > 10000);
   assert.ok(parsedInitialData.postalCosts.length > 9000);
-  assert.ok(parsedInitialData.postalWeightCosts.length > 80000);
+  assert.ok(parsedPostalWeightData.postalWeightCosts.length > 80000);
   const regionCodeBySource = new Map([
     ["东北区", "NE"],
     ["大湖区", "GL"],

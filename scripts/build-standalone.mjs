@@ -25,15 +25,43 @@ const initialPayload = JSON.parse(
     "utf8",
   ),
 );
-delete initialPayload.postalWeightCosts;
-delete initialPayload.meta?.postalWeightCostRows;
+const lockedRegionCode = "WE";
+const lockedRegionSource = "美西大区";
+initialPayload.records = initialPayload.records.filter(
+  (row) => row.region === lockedRegionSource,
+);
+initialPayload.postalRecords = initialPayload.postalRecords.filter(
+  (row) => row.region === lockedRegionCode,
+);
+const lockedRoutes = new Set([
+  ...initialPayload.records.map((row) => row.route),
+  ...initialPayload.postalRecords.map((row) => row.route).filter(Boolean),
+]);
+initialPayload.properties = initialPayload.properties.filter((row) =>
+  lockedRoutes.has(row.route),
+);
+initialPayload.postalProperties = initialPayload.postalProperties.filter(
+  (row) => lockedRoutes.has(row.route),
+);
+initialPayload.postalCosts = initialPayload.postalCosts.filter(
+  (row) => row.region === lockedRegionCode,
+);
+initialPayload.meta = {
+  ...initialPayload.meta,
+  sourceRows: initialPayload.records.length,
+  aggregatedRows: initialPayload.records.length,
+  propertyRows: initialPayload.properties.length,
+  postalRows: initialPayload.postalRecords.length,
+  postalPropertyRows: initialPayload.postalProperties.length,
+  postalCostRows: initialPayload.postalCosts.length,
+};
 const initialData = JSON.stringify(initialPayload)
   .replace(/&/g, "\\u0026")
   .replace(/</g, "\\u003c")
   .replace(/>/g, "\\u003e")
   .replace(/\u2028/g, "\\u2028")
   .replace(/\u2029/g, "\\u2029");
-const initialDataScript = `<script id="pph-initial-data">window.__PPH_LOCKED_REGION__="WE";window.__PPH_INITIAL_DATA__=${initialData};</script>`;
+const initialDataScript = `<script id="pph-initial-data">window.__PPH_LOCKED_REGION__=${JSON.stringify(lockedRegionCode)};window.__PPH_INITIAL_DATA__=${initialData};</script>`;
 html = html.replace("</head>", `${initialDataScript}\n  </head>`);
 
 const stylesheetMatch = html.match(
