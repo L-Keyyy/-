@@ -1002,6 +1002,11 @@ export default function Home() {
         {
           type: "value",
           name: "PPH",
+          interval: 0.5,
+          min: ({ min }: { min: number }) =>
+            Math.max(0, Math.floor((min - 0.5) * 2) / 2),
+          max: ({ max }: { max: number }) =>
+            Math.ceil((max + 0.5) * 2) / 2,
           nameTextStyle: { color: "#94a3b8", fontSize: 10, padding: [0, 0, 4, 0] },
           splitLine: { lineStyle: { color: "#edf1f6", type: "dashed" } },
           axisLabel: { color: "#94a3b8", fontSize: 10 },
@@ -1175,7 +1180,15 @@ export default function Home() {
               ? (currentValue.operationPph - previousValue.operationPph) /
                 previousValue.operationPph
               : null;
-          return { code, currentValue, change };
+          const dailyExtra = Math.max(
+            0,
+            Math.round(
+              ((currentValue.operationPph - previousValue.operationPph) *
+                currentValue.totalHours) /
+                7,
+            ),
+          );
+          return { code, currentValue, change, dailyExtra };
         })
         .sort((a, b) => (b.change ?? -Infinity) - (a.change ?? -Infinity));
       const rising = ranked.filter((item) => (item.change ?? 0) > 0).slice(0, 3);
@@ -1187,6 +1200,7 @@ export default function Home() {
               label: item.code,
               value: signedPercent(item.change),
               meta: `${formatNumber(item.currentValue.operationPph, 2)} PPH`,
+              dailyExtra: item.dailyExtra,
               tone: toneForChange(item.change),
             }))
           : fallback("暂无上涨邮编"),
@@ -1231,7 +1245,15 @@ export default function Home() {
               ? (currentValue.operationPph - previousValue.operationPph) /
                 previousValue.operationPph
               : null;
-          return { route, currentValue, change };
+          const dailyExtra = Math.max(
+            0,
+            Math.round(
+              ((currentValue.operationPph - previousValue.operationPph) *
+                currentValue.totalHours) /
+                7,
+            ),
+          );
+          return { route, currentValue, change, dailyExtra };
         })
         .sort((a, b) => (b.change ?? -Infinity) - (a.change ?? -Infinity));
       const rising = ranked.filter((item) => (item.change ?? 0) > 0).slice(0, 3);
@@ -1243,6 +1265,7 @@ export default function Home() {
               label: item.route,
               value: signedPercent(item.change),
               meta: `${formatNumber(item.currentValue.operationPph, 2)} PPH`,
+              dailyExtra: item.dailyExtra,
               tone: toneForChange(item.change),
             }))
           : fallback("暂无上涨路区"),
@@ -3115,15 +3138,31 @@ export default function Home() {
                 <small>{scopeSummaryInsight.subtitle}</small>
               </div>
               <div className="scope-insight-items">
-                {scopeSummaryInsight.items.map((item) => (
-                  <div className="scope-insight-item" key={item.label}>
-                    <span>{item.label}</span>
-                    <strong className={`scope-value-${item.tone}`}>
-                      {item.value}
-                    </strong>
-                    <small>{item.meta}</small>
-                  </div>
-                ))}
+                {scopeSummaryInsight.items.map((item) => {
+                  const dailyExtra =
+                    "dailyExtra" in item &&
+                    typeof item.dailyExtra === "number"
+                      ? item.dailyExtra
+                      : 0;
+                  return (
+                    <div className="scope-insight-item" key={item.label}>
+                      <span>{item.label}</span>
+                      <strong className={`scope-value-${item.tone}`}>
+                        {item.value}
+                      </strong>
+                      <small>{item.meta}</small>
+                      {dailyExtra > 0 ? (
+                        <em
+                          className="scope-daily-extra"
+                          title="按本周总工时与PPH提升值测算"
+                        >
+                          日均可多送
+                          <strong>+{formatNumber(dailyExtra)} 单</strong>
+                        </em>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="scope-counts">
