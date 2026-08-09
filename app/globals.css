@@ -2604,46 +2604,6 @@ td .average-value-tag,
   white-space: nowrap;
 }
 
-.salary-grid > div {
-  border: 1px solid transparent;
-  padding: 12px 10px;
-}
-
-.salary-grid .route-salary-card {
-  border-color: #cbdcff;
-  background: var(--blue-soft);
-}
-
-.salary-grid .amazon-salary-card {
-  border-color: #bce8d3;
-  background: var(--green-soft);
-}
-
-.salary-grid strong {
-  font-size: 15px;
-}
-
-.route-salary-card strong {
-  color: var(--blue);
-}
-
-.route-salary-card small {
-  color: var(--slate-500);
-  font-size: 7px;
-  line-height: 1.35;
-}
-
-.amazon-salary-card strong {
-  color: var(--green);
-}
-
-.salary-source {
-  margin: 7px 1px 0;
-  color: var(--slate-500);
-  font-size: 8px;
-  line-height: 1.45;
-}
-
 .postal-cost-grid > div {
   min-height: 72px;
   justify-content: center;
@@ -2773,25 +2733,6 @@ td .average-value-tag,
 .postal-history-list strong {
   color: var(--navy);
   font-size: 12px;
-}
-
-.address-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.address-bars > div > div:first-child {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-  color: var(--slate-600);
-  font-size: 8px;
-}
-
-.address-bars strong {
-  color: var(--slate-800);
 }
 
 .address-track {

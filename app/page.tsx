@@ -20,7 +20,6 @@ import {
   ArrowUpRight,
   BarChart3,
   BellRing,
-  Building2,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -44,7 +43,6 @@ import {
   ShieldCheck,
   Truck,
   Upload,
-  UsersRound,
   X,
   Zap,
 } from "lucide-react";
@@ -875,10 +873,6 @@ export default function Home() {
     p50: percentile(routePphValues, 0.5),
     p75: percentile(routePphValues, 0.75),
   };
-  const volumeP75 = percentile(
-    routeRows.map((row) => row.attempted),
-    0.75,
-  );
   const failP75 = percentile(
     routeRows.map((row) => row.failRate),
     0.75,
@@ -1887,31 +1881,6 @@ export default function Home() {
     }
   };
 
-  const selectedProperty = selectedRoute
-    ? propertyMap.get(selectedRoute.route)
-    : undefined;
-  const selectedRouteHourlyWage = selectedProperty?.routeHourlyWage ?? 0;
-  const selectedAnomalies = selectedRoute
-    ? [
-        selectedRoute.operationPph < quantiles.p25
-          ? `作业PPH低于${currentRegionName}P25（${formatNumber(quantiles.p25, 2)}）`
-          : "",
-        selectedRoute.wow !== null && selectedRoute.wow < 0
-          ? `较上周下降${formatPercent(Math.abs(selectedRoute.wow))}`
-          : "",
-        selectedRoute.failRate >= failP75 && selectedRoute.failRate > 0
-          ? `派送失败率处于本区高位（${formatPercent(selectedRoute.failRate)}）`
-          : "",
-        selectedRoute.attempted >= volumeP75 &&
-        selectedRoute.operationPph < quantiles.p25
-          ? "高单量且效率落入本区P25以下"
-          : "",
-        selectedRoute.isNew.includes("新开") &&
-        !selectedRoute.isNew.includes("非新开")
-          ? "新开路区，纳入爬坡观察"
-          : "",
-      ].filter(Boolean)
-    : [];
   const similarRoutes = useMemo(() => {
     if (!selectedRoute) return [];
     const sourceProperty = propertyMap.get(selectedRoute.route);
@@ -4306,113 +4275,6 @@ export default function Home() {
 
               <section className="drawer-section">
                 <div className="drawer-section-title">
-                  <CircleDollarSign size={16} />
-                  <strong>时薪对比</strong>
-                </div>
-                <div className="property-grid salary-grid">
-                  <div className="route-salary-card">
-                    <span>路区时薪（薪资文件）</span>
-                    <strong>
-                      {selectedRouteHourlyWage > 0
-                        ? `$${formatNumber(selectedRouteHourlyWage, 2)}/h`
-                        : "暂无数据"}
-                    </strong>
-                    {selectedRouteHourlyWage > 0 ? (
-                      <small>六月薪资数据结果</small>
-                    ) : null}
-                  </div>
-                  <div className="amazon-salary-card">
-                    <span>Amazon时薪（中位数）</span>
-                    <strong>
-                      {selectedProperty?.amazonHourlyMedian
-                        ? `$${formatNumber(selectedProperty.amazonHourlyMedian, 2)}/h`
-                        : "暂无数据"}
-                    </strong>
-                  </div>
-                </div>
-                {selectedProperty?.salaryCity ? (
-                  <p className="salary-source">
-                    调研城市：{selectedProperty.salaryCity}
-                  </p>
-                ) : null}
-              </section>
-
-              <section className="drawer-section">
-                <div className="drawer-section-title">
-                  <AlertTriangle size={16} />
-                  <strong>异常原因</strong>
-                </div>
-                {selectedAnomalies.length ? (
-                  <ul className="reason-list">
-                    {selectedAnomalies.map((reason) => (
-                      <li key={reason}>
-                        <span />
-                        {reason}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="drawer-good">
-                    <CheckCircle2 size={17} />
-                    当前规则下未识别到重点异常
-                  </div>
-                )}
-              </section>
-
-              <section className="drawer-section">
-                <div className="drawer-section-title">
-                  <Building2 size={16} />
-                  <strong>路区难易度</strong>
-                </div>
-                <div className="property-grid">
-                  <div>
-                    <span>难易度</span>
-                    <strong>{selectedProperty?.difficulty || "未标注"}</strong>
-                  </div>
-                  <div>
-                    <span>首单里程</span>
-                    <strong>
-                      {selectedProperty?.firstMile
-                        ? `${formatNumber(selectedProperty.firstMile, 1)} mi`
-                        : "未标注"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>熟手PPH</span>
-                    <strong>
-                      {selectedProperty?.expertPph
-                        ? `${formatNumber(selectedProperty.expertPph, 1)} 件`
-                        : "未标注"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>派送异常率</span>
-                    <strong>
-                      {selectedProperty?.deliveryExceptionRate
-                        ? formatPercent(
-                            selectedProperty.deliveryExceptionRate,
-                            2,
-                          )
-                        : "未标注"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>DNR率</span>
-                    <strong>
-                      {selectedProperty?.dnrRate
-                        ? formatPercent(selectedProperty.dnrRate, 2)
-                        : "未标注"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>安全度</span>
-                    <strong>{selectedProperty?.safety || "未标注"}</strong>
-                  </div>
-                </div>
-              </section>
-
-              <section className="drawer-section">
-                <div className="drawer-section-title">
                   <Clock3 size={16} />
                   <strong>耗时结构</strong>
                 </div>
@@ -4457,39 +4319,6 @@ export default function Home() {
                     补齐。
                   </p>
                 ) : null}
-              </section>
-
-              <section className="drawer-section">
-                <div className="drawer-section-title">
-                  <UsersRound size={16} />
-                  <strong>收件地址类型占比</strong>
-                </div>
-                {selectedProperty?.addressMix ? (
-                  <div className="address-bars">
-                    {addressMixItems(selectedProperty.addressMix)
-                      .sort((a, b) => b.value - a.value)
-                      .slice(0, 7)
-                      .map((item) => (
-                        <div key={item.name}>
-                          <div>
-                            <span>{item.name}</span>
-                            <strong>{formatNumber(item.value, 1)}%</strong>
-                          </div>
-                          <div className="address-track">
-                            <span
-                              style={{
-                                width: `${Math.min(100, item.value)}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="missing-copy">
-                    当前属性文件未包含该路区的地址类型明细。
-                  </p>
-                )}
               </section>
 
               <section className="drawer-section">

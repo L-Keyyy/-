@@ -55,7 +55,6 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.match(page, /高PPH值的路区（P75）/);
   assert.match(page, /单量上升但PPH未上升/);
   assert.match(page, /路区时薪/);
-  assert.match(page, /Amazon时薪（中位数）/);
   assert.match(page, /手动输入站点名称/);
   assert.match(page, /手动输入路区名称/);
   assert.match(page, /handleRouteSearchChange/);
@@ -116,12 +115,16 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.match(page, /P75 \/ P25 路区观察/);
   assert.match(page, /返回路区/);
   assert.match(page, /route-change-summary/);
-  assert.match(page, /路区时薪（薪资文件）/);
   assert.match(page, /不使用当前周PPH重新计算/);
   assert.match(page, /薪资文件效率基准/);
   assert.match(page, /addressDistributionDifference/);
   assert.match(page, /商业、公寓、学校、山区等难送地址按1\.5倍加权/);
   assert.match(page, /PPH仅作为结果对比，不参与相似度排名/);
+  assert.doesNotMatch(page, /<strong>时薪对比<\/strong>/);
+  assert.doesNotMatch(page, /路区时薪（薪资文件）/);
+  assert.doesNotMatch(page, /<strong>路区难易度<\/strong>/);
+  assert.doesNotMatch(page, /<strong>收件地址类型占比<\/strong>/);
+  assert.equal((page.match(/<strong>异常原因<\/strong>/g) ?? []).length, 1);
   assert.doesNotMatch(page, /件均DSP成本 × 邮编作业PPH/);
   assert.doesNotMatch(page, /人口密度 × 作业PPH/);
   assert.doesNotMatch(page, /label="派送失败率"/);
