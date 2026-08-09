@@ -3,18 +3,27 @@
 :root {
   --navy: #0b2451;
   --navy-deep: #071a3a;
+  --navy-900: #0b2451;
   --blue: #2563eb;
   --blue-soft: #edf4ff;
+  --blue-200: #bfd4ff;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
   --green: #16a36a;
   --green-soft: #eaf8f2;
+  --green-600: #16a36a;
   --red: #dc4c56;
   --red-soft: #fff0f1;
   --orange: #e9852d;
   --orange-soft: #fff4e9;
+  --orange-600: #e9852d;
   --slate-950: #10203a;
+  --slate-900: #17253b;
   --slate-800: #26364e;
   --slate-600: #64748b;
   --slate-500: #7b8a9e;
+  --slate-400: #94a3b8;
   --slate-300: #cbd5e1;
   --slate-200: #e5ebf3;
   --slate-100: #f3f6fa;
@@ -59,6 +68,19 @@ button:disabled {
   min-height: 100vh;
 }
 
+.capture-full .app-shell {
+  position: relative;
+}
+
+.capture-full .sidebar {
+  position: absolute;
+  height: 100%;
+}
+
+.capture-full .topbar {
+  position: relative;
+}
+
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
@@ -94,6 +116,25 @@ button:disabled {
   box-shadow: 0 8px 20px rgba(37, 113, 248, 0.3);
   font-size: 19px;
   font-weight: 800;
+}
+
+.brand-mark-button {
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.brand-mark-button:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 10px 24px rgba(37, 113, 248, 0.4);
+}
+
+.brand-mark-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.88);
+  outline-offset: 3px;
 }
 
 .brand > div:nth-child(2) {
@@ -251,6 +292,10 @@ button:disabled {
   border-bottom: 1px solid var(--slate-200);
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(14px);
+}
+
+.nav-anchor {
+  scroll-margin-top: 176px;
 }
 
 .topbar-left,
@@ -473,15 +518,25 @@ button:disabled {
 }
 
 .filter-bar {
+  position: sticky;
+  top: 78px;
+  z-index: 24;
   display: grid;
-  grid-template-columns: 54px repeat(5, minmax(120px, 1fr));
+  grid-template-columns: 54px repeat(6, minmax(110px, 1fr));
   align-items: end;
   gap: 10px;
   margin-top: 12px;
   padding: 11px 13px;
   border: 1px solid var(--slate-200);
   border-radius: 12px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 8px 22px rgba(20, 45, 82, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.capture-full .filter-bar {
+  position: relative;
+  top: auto;
 }
 
 .filter-lead {
@@ -509,6 +564,42 @@ button:disabled {
 
 .select-wrap {
   position: relative;
+}
+
+.text-filter-wrap {
+  position: relative;
+}
+
+.text-filter-wrap input {
+  width: 100%;
+  height: 34px;
+  padding: 0 9px 0 29px;
+  overflow: hidden;
+  border: 1px solid var(--slate-200);
+  outline: 0;
+  border-radius: 7px;
+  background: #fbfcfe;
+  color: var(--slate-800);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  transition: border 150ms ease;
+}
+
+.text-filter-wrap input::placeholder {
+  color: var(--slate-400);
+}
+
+.text-filter-wrap input:focus {
+  border-color: #8cb4ff;
+}
+
+.text-filter-wrap svg {
+  position: absolute;
+  top: 10px;
+  left: 9px;
+  z-index: 1;
+  color: var(--slate-400);
+  pointer-events: none;
 }
 
 .select-wrap select {
@@ -626,7 +717,7 @@ button:disabled {
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
   margin-top: 14px;
 }
@@ -843,6 +934,153 @@ button:disabled {
   font-weight: 700;
 }
 
+.quantile-watch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 8px;
+}
+
+.quantile-watch-column {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--slate-200);
+  border-radius: 9px;
+  background: #fbfcff;
+}
+
+.quantile-watch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 9px;
+  border-bottom: 1px solid var(--slate-100);
+  background: #fff;
+}
+
+.quantile-watch-head > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.quantile-watch-head > div > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quantile-watch-head strong {
+  overflow: hidden;
+  color: var(--slate-950);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quantile-watch-head small {
+  color: var(--slate-500);
+  font-size: 7px;
+}
+
+.quantile-watch-head > button {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--slate-200);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--blue);
+}
+
+.quantile-watch-head > button:not(:disabled):hover {
+  border-color: #a9c5fa;
+  background: var(--blue-soft);
+}
+
+.quantile-watch-badge {
+  display: grid;
+  width: 34px;
+  height: 27px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.quantile-watch-high {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.quantile-watch-low {
+  background: var(--orange-soft);
+  color: var(--orange);
+}
+
+.quantile-watch-list {
+  height: 244px;
+  overflow-y: auto;
+}
+
+.quantile-watch-list > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 0;
+  border-bottom: 1px solid var(--slate-100);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.quantile-watch-list > button:hover {
+  background: #f5f8ff;
+}
+
+.quantile-watch-list > button > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quantile-watch-list > button > span:last-child {
+  flex: 0 0 auto;
+  align-items: flex-end;
+}
+
+.quantile-watch-list strong {
+  overflow: hidden;
+  max-width: 110px;
+  color: var(--slate-800);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quantile-watch-list small {
+  color: var(--slate-500);
+  font-size: 7px;
+}
+
+.quantile-watch-empty {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: var(--slate-500);
+  font-size: 8px;
+}
+
 .empty-state {
   display: flex;
   min-height: 230px;
@@ -872,11 +1110,181 @@ button:disabled {
   font-weight: 650;
 }
 
+.trend-site-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid #cbdcff;
+  border-radius: 7px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.difficulty-panel {
+  margin-top: 22px;
+}
+
+.difficulty-loaded-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid #bce8d3;
+  border-radius: 7px;
+  background: var(--green-soft);
+  color: #14784f;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.difficulty-table-wrap {
+  margin: 0 -17px;
+  overflow-x: auto;
+  border-top: 1px solid var(--slate-100);
+}
+
+.difficulty-table {
+  min-width: 820px;
+}
+
+.difficulty-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.difficulty-value,
+.difficulty-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.difficulty-value {
+  min-width: 64px;
+  padding: 5px 8px;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.difficulty-status {
+  padding: 5px 8px;
+  font-size: 7px;
+}
+
+.difficulty-status-active {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.difficulty-status-filtered {
+  background: var(--orange-soft);
+  color: #af5f1b;
+}
+
+.difficulty-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0 12px;
+}
+
+.difficulty-toolbar > span {
+  color: var(--slate-500);
+  font-size: 8px;
+}
+
+.difficulty-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  color: var(--slate-500);
+  font-size: 8px;
+}
+
+.difficulty-pagination > div {
+  display: flex;
+  gap: 5px;
+}
+
+.difficulty-pagination button {
+  display: grid;
+  width: 28px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid var(--slate-200);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--slate-600);
+}
+
+.difficulty-pagination button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
 .watchlist-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   gap: 9px;
+}
+
+.watchlist-dimension-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 2px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #dbe7fa;
+  border-radius: 9px;
+  background: linear-gradient(90deg, #f4f8ff, #fff);
+}
+
+.watchlist-dimension-header.postal-dimension-header {
+  margin-top: 18px;
+  border-color: #cae8e3;
+  background: linear-gradient(90deg, #f0fbf8, #fff);
+}
+
+.watchlist-dimension-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+}
+
+.route-dimension-icon {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.postal-dimension-icon {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.watchlist-dimension-header h3,
+.watchlist-dimension-header p {
+  margin: 0;
+}
+
+.watchlist-dimension-header h3 {
+  color: var(--navy);
+  font-size: 11px;
+}
+
+.watchlist-dimension-header p {
+  margin-top: 2px;
+  color: var(--slate-500);
+  font-size: 8px;
 }
 
 .watch-card {
@@ -892,9 +1300,8 @@ button:disabled {
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 9px;
-  padding: 12px;
-  border: 0;
+  gap: 5px;
+  padding: 7px 7px 7px 8px;
   border-bottom: 1px solid var(--slate-100);
   background: transparent;
   color: inherit;
@@ -902,18 +1309,53 @@ button:disabled {
   text-align: left;
 }
 
-.watch-card-head:not(:disabled) {
+.watch-card-summary {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 4px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.watch-card-summary:not(:disabled) {
   cursor: pointer;
 }
 
-.watch-card-head:not(:disabled):hover {
+.watch-card-summary:not(:disabled):hover {
   background: #f8faff;
 }
 
-.watch-card-head:focus-visible,
+.watch-card-summary:focus-visible,
+.watch-card-download:focus-visible,
 .watch-card-toggle:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: -2px;
+}
+
+.watch-card-download {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--slate-200);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--blue);
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.watch-card-download:not(:disabled):hover {
+  border-color: #a9c5fa;
+  background: var(--blue-soft);
 }
 
 .watch-icon {
@@ -935,6 +1377,11 @@ button:disabled {
   color: var(--orange);
 }
 
+.watch-green {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
 .watch-blue {
   background: var(--blue-soft);
   color: var(--blue);
@@ -948,14 +1395,14 @@ button:disabled {
   gap: 2px;
 }
 
-.watch-card-head strong {
+.watch-card-summary strong {
   overflow: hidden;
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.watch-card-head span {
+.watch-card-summary span {
   color: var(--slate-500);
   font-size: 8px;
 }
@@ -1133,6 +1580,83 @@ button:disabled {
   font-size: 8px;
 }
 
+.postal-panel {
+  margin-top: 22px;
+  scroll-margin-top: 96px;
+  padding-bottom: 14px;
+}
+
+.postal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px -17px 0;
+  padding: 10px 17px;
+  border-top: 1px solid var(--slate-100);
+}
+
+.postal-toolbar > span {
+  color: var(--slate-500);
+  font-size: 8px;
+}
+
+.postal-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.postal-metric {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px;
+  border: 1px solid var(--slate-200);
+  border-radius: 9px;
+  background: linear-gradient(145deg, #fff, #f7faff);
+}
+
+.postal-metric span,
+.postal-metric small {
+  overflow: hidden;
+  color: var(--slate-500);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postal-metric strong {
+  overflow: hidden;
+  color: var(--navy);
+  font-size: 18px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postal-table {
+  min-width: 850px;
+}
+
+.postal-table-wrap {
+  border-top: 1px solid var(--slate-100);
+}
+
+.postal-site-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.postal-site-link:hover strong {
+  color: var(--blue);
+}
+
 .data-panel {
   margin-top: 18px;
   scroll-margin-top: 96px;
@@ -1274,6 +1798,20 @@ td small {
   margin-top: 2px;
   color: var(--slate-500);
   font-size: 7px;
+}
+
+td .average-value-tag,
+.average-value-tag {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  margin-top: 3px;
+  padding: 2px 5px;
+  border-radius: 99px;
+  background: var(--orange-soft);
+  color: #af5f1b;
+  font-size: 7px;
+  font-weight: 700;
 }
 
 .route-link {
@@ -1462,6 +2000,7 @@ td small {
 
 .drawer-head {
   display: flex;
+  flex: 0 0 auto;
   min-height: 104px;
   align-items: flex-start;
   justify-content: space-between;
@@ -1470,6 +2009,16 @@ td small {
     radial-gradient(circle at 80% 30%, rgba(74, 134, 244, 0.2), transparent 28%),
     var(--navy);
   color: #fff;
+}
+
+.drawer-head > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.drawer-head > button:last-child {
+  flex: 0 0 auto;
+  margin-left: 10px;
 }
 
 .drawer-head span {
@@ -1501,9 +2050,421 @@ td small {
   color: #fff;
 }
 
+.drawer-postal-impact-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.drawer-head .drawer-postal-impact-label {
+  padding: 4px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #b9d1ff;
+  font-size: 7px;
+  letter-spacing: 0;
+}
+
+.drawer-head .drawer-postal-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border: 1px solid rgba(255, 188, 84, 0.46);
+  border-radius: 99px;
+  background: rgba(238, 145, 35, 0.18);
+  color: #ffd28b;
+  font-size: 7px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.drawer-postal-impact-head > strong {
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.drawer-head .drawer-postal-excel {
+  display: inline-flex;
+  width: auto;
+  height: 26px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.drawer-head .drawer-postal-excel:disabled {
+  opacity: 0.4;
+}
+
+.route-drawer-head {
+  display: grid;
+  min-height: 132px;
+  grid-template-columns: minmax(128px, 1fr) minmax(145px, 1.05fr) 31px;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.route-drawer-head > button:last-child {
+  align-self: start;
+  margin-left: 0;
+}
+
+.route-head-identity {
+  min-width: 0;
+}
+
+.route-head-identity h2,
+.route-head-identity p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-change-summary {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(134, 175, 248, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.route-change-summary-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.drawer-head .route-change-summary-title > span {
+  overflow: hidden;
+  flex: 1 1 auto;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 6px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-change-summary-title > strong {
+  flex: 0 0 auto;
+  font-size: 7px;
+}
+
+.route-change-summary-title > em {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  border-radius: 99px;
+  font-size: 6px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.route-change-summary-title > em.positive {
+  background: rgba(35, 202, 150, 0.16);
+  color: #8cf1cb;
+}
+
+.route-change-summary-title > em.negative {
+  background: rgba(255, 113, 122, 0.17);
+  color: #ffb0b6;
+}
+
+.route-change-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr);
+  align-items: end;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.route-change-range > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drawer-head .route-change-range small {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 6px;
+}
+
+.route-change-range strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-change-range > svg {
+  margin-bottom: 2px;
+  color: #86aff8;
+}
+
+.postal-drawer-head {
+  display: grid;
+  min-height: 118px;
+  grid-template-columns: minmax(95px, 1fr) minmax(175px, 1.55fr) 31px;
+  align-items: center;
+  column-gap: 10px;
+  background:
+    radial-gradient(circle at 80% 30%, rgba(47, 196, 169, 0.22), transparent 30%),
+    linear-gradient(135deg, #082d4c, #075b65);
+}
+
+.postal-drawer-head span {
+  color: #89e1d4;
+}
+
+.postal-drawer-head > button:last-child {
+  align-self: start;
+  margin-left: 0;
+}
+
+.postal-head-identity {
+  min-width: 0;
+}
+
+.drawer-head .postal-back-button {
+  display: inline-flex;
+  width: auto;
+  height: 22px;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 5px;
+  padding: 0 7px;
+  border-color: rgba(137, 225, 212, 0.32);
+  background: rgba(137, 225, 212, 0.1);
+  color: #b9fff3;
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.postal-head-identity h2,
+.postal-head-identity p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postal-change-summary {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(137, 225, 212, 0.28);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.postal-change-summary-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.postal-drawer-head .postal-change-summary-title > span {
+  overflow: hidden;
+  flex: 1 1 auto;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 6px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postal-change-summary-title > strong {
+  flex: 0 0 auto;
+  font-size: 7px;
+}
+
+.postal-change-summary-title > em {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  border-radius: 99px;
+  font-size: 6px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.postal-change-summary-title > em.positive {
+  background: rgba(35, 202, 150, 0.16);
+  color: #8cf1cb;
+}
+
+.postal-change-summary-title > em.negative {
+  background: rgba(255, 113, 122, 0.17);
+  color: #ffb0b6;
+}
+
+.postal-change-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr);
+  align-items: end;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.postal-change-range > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.postal-drawer-head .postal-change-range small {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 6px;
+}
+
+.postal-change-range strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postal-change-range > svg {
+  margin-bottom: 2px;
+  color: #89e1d4;
+}
+
 .drawer-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
   overflow-y: auto;
   padding: 16px 18px 30px;
+}
+
+.drawer-postal-impact-panel {
+  margin-bottom: 14px;
+  padding: 11px;
+  border: 1px solid #cbdcff;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #f4f8ff, #fff);
+}
+
+.drawer-postal-impact-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.drawer-postal-impact-title > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drawer-postal-impact-title strong {
+  color: var(--navy);
+  font-size: 10px;
+}
+
+.drawer-postal-impact-title span {
+  color: var(--slate-500);
+  font-size: 7px;
+}
+
+.drawer-postal-impact-title > span {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 99px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.drawer-postal-impact-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--slate-100);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.drawer-postal-impact-list button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 0;
+  border-bottom: 1px solid var(--slate-100);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.drawer-postal-impact-list button:last-child {
+  border-bottom: 0;
+}
+
+.drawer-postal-impact-list button:hover {
+  background: var(--blue-soft);
+}
+
+.drawer-postal-impact-list button.is-highlighted {
+  position: relative;
+  z-index: 1;
+  border-bottom-color: transparent;
+  background: #eff5ff;
+  box-shadow:
+    inset 0 0 0 2px #3b75e8,
+    0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.drawer-postal-impact-list button.is-highlighted:hover {
+  background: #e7f0ff;
+}
+
+.drawer-postal-impact-list button > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drawer-postal-impact-list button > span:last-child {
+  flex: 0 0 auto;
+  align-items: flex-end;
+}
+
+.drawer-postal-impact-list .postal-impact-value em {
+  padding: 2px 5px;
+  border-radius: 99px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 6px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.drawer-postal-impact-list strong {
+  color: var(--slate-900);
+  font-size: 9px;
+}
+
+.drawer-postal-impact-list small {
+  overflow: hidden;
+  color: var(--slate-500);
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .drawer-metrics {
@@ -1643,6 +2604,177 @@ td small {
   white-space: nowrap;
 }
 
+.salary-grid > div {
+  border: 1px solid transparent;
+  padding: 12px 10px;
+}
+
+.salary-grid .route-salary-card {
+  border-color: #cbdcff;
+  background: var(--blue-soft);
+}
+
+.salary-grid .amazon-salary-card {
+  border-color: #bce8d3;
+  background: var(--green-soft);
+}
+
+.salary-grid strong {
+  font-size: 15px;
+}
+
+.route-salary-card strong {
+  color: var(--blue);
+}
+
+.route-salary-card small {
+  color: var(--slate-500);
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+.amazon-salary-card strong {
+  color: var(--green);
+}
+
+.salary-source {
+  margin: 7px 1px 0;
+  color: var(--slate-500);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.postal-cost-grid > div {
+  min-height: 72px;
+  justify-content: center;
+  border: 1px solid var(--slate-200);
+  background: #f8fbff;
+}
+
+.postal-cost-grid .postal-cost-primary {
+  border-color: #aee2d5;
+  background: var(--green-soft);
+}
+
+.postal-cost-grid strong {
+  font-size: 12px;
+}
+
+.postal-cost-primary strong {
+  color: var(--green);
+}
+
+.postal-time-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.postal-time-list > div > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  color: var(--slate-600);
+  font-size: 8px;
+}
+
+.postal-time-list .address-track span {
+  background: linear-gradient(90deg, #50cbb1, #0891b2);
+}
+
+.average-basis-note {
+  margin: 9px 0 0;
+  padding: 7px 9px;
+  border: 1px solid #f3d1ad;
+  border-radius: 7px;
+  background: var(--orange-soft);
+  color: #965019;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.postal-route-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.postal-route-list button {
+  display: flex;
+  min-width: calc(50% - 3px);
+  flex: 1 1 calc(50% - 3px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--slate-200);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--blue);
+  text-align: left;
+}
+
+.postal-route-list button:not(:disabled):hover {
+  border-color: #a9c5fa;
+  background: var(--blue-soft);
+}
+
+.postal-route-list button:disabled {
+  color: var(--slate-500);
+  cursor: default;
+}
+
+.postal-route-list button > span:first-child,
+.postal-route-list button strong,
+.postal-route-list button small {
+  display: block;
+}
+
+.postal-route-list button strong {
+  font-size: 9px;
+}
+
+.postal-route-list button small {
+  margin-top: 2px;
+  color: var(--slate-500);
+  font-size: 7px;
+}
+
+.postal-route-list button > span:last-child {
+  flex: 0 0 auto;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.postal-history-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.postal-history-list > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 7px;
+  border: 1px solid var(--slate-200);
+  border-radius: 7px;
+  background: #f8faff;
+}
+
+.postal-history-list span,
+.postal-history-list small {
+  color: var(--slate-500);
+  font-size: 7px;
+}
+
+.postal-history-list strong {
+  color: var(--navy);
+  font-size: 12px;
+}
+
 .address-bars {
   display: flex;
   flex-direction: column;
@@ -1689,6 +2821,16 @@ td small {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+.similar-basis-note {
+  margin: -2px 0 8px;
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: var(--slate-100);
+  color: var(--slate-500);
+  font-size: 7px;
+  line-height: 1.65;
 }
 
 .similar-list button {
@@ -1774,6 +2916,407 @@ td small {
   }
 }
 
+.postal-salary-panel {
+  min-height: 330px;
+}
+
+.postal-salary-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.postal-salary-summary span {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid var(--slate-200);
+  border-radius: 10px;
+  color: var(--slate-500);
+  background: var(--slate-50);
+  font-size: 11px;
+}
+
+.postal-salary-summary strong {
+  color: var(--navy-900);
+  font-size: 13px;
+}
+
+.postal-salary-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 10px 0 8px;
+}
+
+.postal-salary-toolbar .search-box {
+  width: min(320px, 100%);
+}
+
+.postal-salary-toolbar > span {
+  color: var(--slate-400);
+  font-size: 11px;
+}
+
+.postal-salary-table-wrap,
+.weight-price-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--slate-200);
+  border-radius: 13px;
+}
+
+.postal-salary-table,
+.weight-price-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.postal-salary-table {
+  min-width: 540px;
+  table-layout: fixed;
+}
+
+.postal-salary-table th:nth-child(1) {
+  width: 13%;
+}
+
+.postal-salary-table th:nth-child(2) {
+  width: 19%;
+}
+
+.postal-salary-table th:nth-child(3),
+.postal-salary-table th:nth-child(4) {
+  width: 14%;
+}
+
+.postal-salary-table th:nth-child(5),
+.postal-salary-table th:nth-child(6) {
+  width: 20%;
+}
+
+.weight-price-table {
+  min-width: 700px;
+}
+
+.postal-salary-table th,
+.postal-salary-table td,
+.weight-price-table th,
+.weight-price-table td {
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--slate-100);
+  color: var(--slate-600);
+  text-align: right;
+  font-size: 11px;
+}
+
+.postal-salary-table th,
+.postal-salary-table td {
+  padding-block: 7px;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.postal-salary-table th,
+.weight-price-table th {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  color: var(--slate-500);
+  background: #f8faff;
+  font-weight: 600;
+}
+
+.postal-salary-table th:first-child,
+.postal-salary-table td:first-child,
+.postal-salary-table th:nth-child(2),
+.postal-salary-table td:nth-child(2),
+.weight-price-table th:first-child,
+.weight-price-table td:first-child,
+.weight-price-table th:nth-child(2),
+.weight-price-table td:nth-child(2) {
+  text-align: left;
+}
+
+.postal-salary-table tbody tr:last-child td,
+.weight-price-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.postal-salary-table tbody tr:hover,
+.weight-price-table tbody tr:hover {
+  background: #f8fbff;
+}
+
+.postal-salary-row {
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.postal-salary-row:hover {
+  background: #f1f6ff !important;
+  box-shadow: inset 3px 0 0 var(--blue-600);
+}
+
+.postal-salary-row:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: -2px;
+  background: #f1f6ff;
+}
+
+.postal-salary-table td strong,
+.weight-price-table td strong {
+  color: var(--navy-900);
+}
+
+.postal-wage-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  min-width: 82px;
+  border: 0;
+  color: var(--blue-600);
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.postal-wage-button:hover:not(:disabled) {
+  color: var(--blue-700);
+  text-decoration: underline;
+}
+
+.postal-wage-button:disabled {
+  color: var(--slate-400);
+  cursor: default;
+}
+
+.postal-price-drawer {
+  width: min(790px, 96vw);
+}
+
+.postal-price-head {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) auto auto;
+  align-items: center;
+  gap: 24px;
+  background: linear-gradient(125deg, #0b2a5f 0%, #0b4863 100%);
+}
+
+.postal-price-head > div:first-child > span,
+.postal-price-head > div:first-child > p {
+  color: #a8c7ef;
+}
+
+.postal-price-head-metrics {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.postal-price-head-metrics > span {
+  display: flex;
+  min-width: 110px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 11px;
+  color: #a8c7ef;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 10px;
+}
+
+.postal-price-head-metrics strong {
+  color: #fff;
+  font-size: 16px;
+}
+
+.postal-price-scroll {
+  padding: 26px;
+}
+
+.weight-price-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.weight-price-title-row .drawer-section-title {
+  margin-bottom: 0;
+}
+
+.drawer-section-title > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drawer-section-title > div span {
+  color: var(--slate-400);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.weight-price-search {
+  width: 245px;
+  flex: 0 0 auto;
+}
+
+.weight-price-table-wrap {
+  max-height: 410px;
+}
+
+.weight-price-table th,
+.weight-price-table td {
+  padding-block: 10px;
+}
+
+.price-type-badge {
+  display: inline-flex;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #425777;
+  background: #eef3fb;
+  font-size: 10px;
+}
+
+.weight-price-table td.has-target {
+  color: var(--green-600);
+  background: #effbf6;
+  font-weight: 800;
+}
+
+.wage-calculator {
+  position: fixed;
+  z-index: 82;
+  top: 50%;
+  left: 28px;
+  width: min(520px, calc(100vw - 850px));
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  transform: translateY(-50%);
+  border-color: #cfe0ff;
+  background: linear-gradient(145deg, #fff 0%, #f4f8ff 100%);
+  box-shadow: 0 22px 65px rgba(7, 26, 58, 0.24);
+}
+
+.wage-calculator .calculator-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.calculator-input-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 15px;
+  border: 1px solid #bfd4ff;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.calculator-input-card > span {
+  color: var(--slate-500);
+  font-size: 11px;
+}
+
+.calculator-input-card > div {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--blue-200);
+  border-radius: 9px;
+  background: #f8fbff;
+}
+
+.calculator-input-card b,
+.calculator-input-card em {
+  color: var(--blue-600);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.calculator-input-card input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--navy-900);
+  background: transparent;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.calculator-input-card small {
+  color: var(--slate-400);
+  font-size: 10px;
+}
+
+.calculator-results {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.calculator-results > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 12px;
+  border: 1px solid var(--slate-200);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.calculator-results span,
+.calculator-results small {
+  color: var(--slate-400);
+  font-size: 9px;
+}
+
+.calculator-results strong {
+  color: var(--navy-900);
+  font-size: 15px;
+}
+
+.calculator-results strong.positive {
+  color: var(--green-600);
+}
+
+.calculator-results strong.negative {
+  color: var(--orange-600);
+}
+
+.calculator-formula {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  color: #536783;
+  background: #eaf2ff;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.calculator-formula svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--blue-600);
+}
+
 @media (max-width: 1380px) {
   .metrics-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1785,6 +3328,15 @@ td small {
 }
 
 @media (max-width: 1100px) {
+  .wage-calculator {
+    position: static;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+    transform: none;
+    box-shadow: none;
+  }
+
   .sidebar {
     width: 224px;
   }
@@ -1810,6 +3362,10 @@ td small {
   }
 
   .watchlist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .postal-metrics-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1898,6 +3454,24 @@ td small {
   .status-summary > div:first-child {
     border-left: 0;
   }
+
+  .postal-price-head {
+    grid-template-columns: 1fr auto;
+  }
+
+  .postal-price-head-metrics {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .postal-price-head > button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .calculator-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 600px) {
@@ -1965,6 +3539,10 @@ td small {
     grid-template-columns: 1fr;
   }
 
+  .quantile-watch-grid {
+    grid-template-columns: 1fr;
+  }
+
   .watch-rows {
     min-height: auto;
   }
@@ -1987,6 +3565,11 @@ td small {
     flex-direction: column;
   }
 
+  .postal-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .table-legend {
     flex-wrap: wrap;
   }
@@ -2004,5 +3587,32 @@ td small {
 
   .route-drawer {
     width: 100%;
+  }
+
+  .postal-salary-toolbar,
+  .weight-price-title-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .postal-salary-toolbar .search-box,
+  .weight-price-search {
+    width: 100%;
+  }
+
+  .postal-salary-toolbar > span {
+    line-height: 1.5;
+  }
+
+  .postal-price-scroll {
+    padding: 16px 12px;
+  }
+
+  .postal-price-head-metrics {
+    overflow: auto;
+  }
+
+  .calculator-results {
+    grid-template-columns: 1fr;
   }
 }
