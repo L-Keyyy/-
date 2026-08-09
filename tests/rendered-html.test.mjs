@@ -95,10 +95,13 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.match(page, /selectedRouteContext/);
   assert.match(page, /该路区全部邮编/);
   assert.match(page, /识别状态/);
-  assert.match(page, /未同步增长异常/);
+  assert.doesNotMatch(page, /未同步增长异常/);
   assert.match(page, /邮编与路区单量增加异常/);
   assert.match(page, /drawer-postal-warning/);
-  assert.match(page, /expectedVolumeIncrease/);
+  assert.doesNotMatch(page, /expectedVolumeIncrease/);
+  assert.match(page, /routePostalReconciliation/);
+  assert.match(page, /isRoutePostalVolumeMismatch/);
+  assert.match(page, /路区与邮编汇总已对齐/);
   assert.match(page, /路区单量增加/);
   assert.match(page, /is-highlighted/);
   assert.match(page, /下载路区邮编变化Excel/);
@@ -149,6 +152,38 @@ test("ships the associated starter dataset and removes disposable preview code",
   assert.ok(parsedInitialData.postalProperties.length > 10000);
   assert.ok(parsedInitialData.postalCosts.length > 9000);
   assert.ok(parsedInitialData.postalWeightCosts.length > 80000);
+  const regionCodeBySource = new Map([
+    ["东北区", "NE"],
+    ["大湖区", "GL"],
+    ["佛州区", "FL"],
+    ["美西大区", "WE"],
+    ["中南大区", "MS"],
+    ["德州大区", "TX"],
+  ]);
+  const routeVolumeByWeek = new Map();
+  parsedInitialData.records.forEach((row) => {
+    const key = [
+      row.week,
+      regionCodeBySource.get(row.region) ?? row.region,
+      row.route,
+    ].join("¦");
+    routeVolumeByWeek.set(
+      key,
+      (routeVolumeByWeek.get(key) ?? 0) + row.attempted,
+    );
+  });
+  const postalVolumeByWeek = new Map();
+  parsedInitialData.postalRecords.forEach((row) => {
+    const key = [row.week, row.region, row.route].join("¦");
+    postalVolumeByWeek.set(
+      key,
+      (postalVolumeByWeek.get(key) ?? 0) + row.attempted,
+    );
+  });
+  assert.equal(routeVolumeByWeek.size, postalVolumeByWeek.size);
+  routeVolumeByWeek.forEach((volume, key) => {
+    assert.equal(postalVolumeByWeek.get(key), volume);
+  });
   const performancePostalCodes = new Set(
     parsedInitialData.postalRecords.map((row) => row.postalCode),
   );

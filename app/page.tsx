@@ -1830,29 +1830,15 @@ export default function Home() {
             : selectedRouteContext?.id === "consecutive-four"
               ? postalPriorityLists.consecutiveFour.changeMap.get(key) ?? 0
               : 0;
-      const routeGrowthRate = Math.max(
-        0,
-        selectedRouteVolumeSignal?.volumeChange ?? 0,
-      );
-      const expectedVolumeIncrease = previous
-        ? previous.attempted * routeGrowthRate
-        : 0;
-      const volumeSyncGap = expectedVolumeIncrease - volumeIncrease;
-      const isVolumeMismatch = Boolean(
-        previous &&
-        (selectedRouteVolumeSignal?.volumeIncrease ?? 0) >= 1000 &&
-        expectedVolumeIncrease >= 50 &&
-        volumeIncrease < expectedVolumeIncrease * 0.25,
-      );
       const metric =
         selectedRouteContext?.id === "volume-up-pph-flat"
-          ? volumeSyncGap
+          ? volumeIncrease
           : selectedRouteContext?.id?.startsWith("consecutive-")
             ? cumulativeChange
             : row.operationPph;
       const isMatch = selectedRouteContext
         ? selectedRouteContext.id === "volume-up-pph-flat"
-          ? isVolumeMismatch
+          ? false
           : matchedKeys.has(key)
         : false;
       return {
@@ -1861,8 +1847,6 @@ export default function Home() {
         volumeIncrease,
         pphChange,
         cumulativeChange,
-        expectedVolumeIncrease,
-        volumeSyncGap,
         metric,
         isMatch,
       };
@@ -1882,7 +1866,6 @@ export default function Home() {
     selectedRoute,
     selectedRouteContext,
     selectedRoutePostalRelations,
-    selectedRouteVolumeSignal,
     weeklyPostalMap,
   ]);
   const routePostalMatchedCount = routePostalImpactRows.filter(
@@ -1891,11 +1874,62 @@ export default function Home() {
   const isRoutePostalMismatchContext =
     selectedRouteContext?.id === "volume-up-pph-flat";
   const routeVolumeIncrease = selectedRouteVolumeSignal?.volumeIncrease ?? 0;
-  const mappedPostalVolumeIncrease = sum(
-    routePostalImpactRows.map((item) => item.volumeIncrease),
-  );
+  const routePostalReconciliation = useMemo(() => {
+    if (!selectedRoute || !previousWeek) {
+      return { currentVolume: 0, previousVolume: 0, volumeIncrease: 0 };
+    }
+    const regionCode =
+      activeRegion === "ALL"
+        ? REGION_OPTIONS.find(
+            (region) => region.source === selectedRoute.region,
+          )?.code
+        : activeRegion;
+    const siteQuery = siteFilter.trim().toLowerCase();
+    const dspQuery = dspFilter.trim().toLowerCase();
+    const relevantRows = postalRecords.filter(
+      (row) =>
+        row.route === selectedRoute.route &&
+        (!regionCode || row.region === regionCode) &&
+        (!siteQuery || row.site.toLowerCase().includes(siteQuery)) &&
+        (!dspQuery || row.dsp.toLowerCase().includes(dspQuery)) &&
+        (row.week === selectedWeek || row.week === previousWeek),
+    );
+    const currentVolume = sum(
+      relevantRows
+        .filter((row) => row.week === selectedWeek)
+        .map((row) => row.attempted),
+    );
+    const previousVolume = sum(
+      relevantRows
+        .filter((row) => row.week === previousWeek)
+        .map((row) => row.attempted),
+    );
+    return {
+      currentVolume,
+      previousVolume,
+      volumeIncrease: currentVolume - previousVolume,
+    };
+  }, [
+    activeRegion,
+    dspFilter,
+    postalRecords,
+    previousWeek,
+    selectedRoute,
+    selectedWeek,
+    siteFilter,
+  ]);
+  const mappedPostalVolumeIncrease = routePostalReconciliation.volumeIncrease;
   const routePostalVolumeGap =
     routeVolumeIncrease - mappedPostalVolumeIncrease;
+  const routePostalMismatchTolerance = Math.max(
+    10,
+    Math.abs(routeVolumeIncrease) * 0.01,
+  );
+  const isRoutePostalVolumeMismatch = Boolean(
+    isRoutePostalMismatchContext &&
+      routeVolumeIncrease >= 1000 &&
+      Math.abs(routePostalVolumeGap) > routePostalMismatchTolerance,
+  );
 
   const downloadRoutePostalImpactExcel = () => {
     if (!selectedRoute || !routePostalImpactRows.length) {
@@ -1909,8 +1943,6 @@ export default function Home() {
         volumeIncrease,
         pphChange,
         cumulativeChange,
-        expectedVolumeIncrease,
-        volumeSyncGap,
         isMatch,
       }) => {
         const property = selectedRoutePostalRelations.find(
@@ -1928,9 +1960,9 @@ export default function Home() {
           名单类型: selectedRouteContext?.title || "关联邮编明细",
           识别状态: selectedRouteContext
             ? isRoutePostalMismatchContext
-              ? isMatch
-                ? "异常：未同步增长"
-                : "正常"
+              ? isRoutePostalVolumeMismatch
+                ? "路区与邮编汇总不一致"
+                : "路区与邮编汇总已对齐"
               : isMatch
                 ? "命中"
                 : "未命中"
@@ -1947,11 +1979,11 @@ export default function Home() {
           路区单量增加: isRoutePostalMismatchContext
             ? routeVolumeIncrease
             : "",
-          按路区增幅参考增加量: isRoutePostalMismatchContext
-            ? Number(expectedVolumeIncrease.toFixed(2))
+          邮编汇总单量增加: isRoutePostalMismatchContext
+            ? mappedPostalVolumeIncrease
             : "",
-          邮编未同步差额: isRoutePostalMismatchContext
-            ? Number(volumeSyncGap.toFixed(2))
+          路区与邮编汇总差额: isRoutePostalMismatchContext
+            ? routePostalVolumeGap
             : "",
           单量环比: previous?.attempted
             ? volumeIncrease / previous.attempted
@@ -1991,7 +2023,7 @@ export default function Home() {
     );
     setNotice(
       isRoutePostalMismatchContext
-        ? `${selectedRoute.route}邮编Excel已生成，共 ${formatNumber(rows.length)} 个邮编，识别 ${formatNumber(routePostalMatchedCount)} 个未同步增长异常。`
+        ? `${selectedRoute.route}邮编Excel已生成，共 ${formatNumber(rows.length)} 个邮编，路区与邮编汇总${isRoutePostalVolumeMismatch ? "存在差异" : "已对齐"}。`
         : `${selectedRoute.route}邮编Excel已生成，共 ${formatNumber(rows.length)} 个邮编，${formatNumber(routePostalMatchedCount)} 个命中当前变化。`,
     );
   };
@@ -3574,8 +3606,7 @@ export default function Home() {
                   <span className="drawer-postal-impact-label">
                     {selectedRouteContext?.title || "关联邮编变化"}
                   </span>
-                  {isRoutePostalMismatchContext &&
-                  routePostalMatchedCount > 0 ? (
+                  {isRoutePostalVolumeMismatch ? (
                     <span className="drawer-postal-warning">
                       <AlertTriangle size={12} />
                       邮编与路区单量增加异常
