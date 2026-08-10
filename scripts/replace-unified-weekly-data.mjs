@@ -136,8 +136,8 @@ for (const [weekIndex, entry] of files.entries()) {
       skippedDimensionRows += 1;
       continue;
     }
-    const attempted = number(row["领件量"]);
     const delivered = number(row["妥投量"]);
+    const attempted = delivered;
     const hours = deriveHours(row, attempted);
     const base = {
       week: entry.week,

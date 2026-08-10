@@ -285,7 +285,6 @@ function isWeeklyProfileRows(rows: Record<string, unknown>[]) {
       "站点名称" in sample &&
       "DSP名称" in sample &&
       "邮编" in sample &&
-      "领件量" in sample &&
       "妥投量" in sample,
   );
 }
@@ -308,8 +307,8 @@ function normalizeWeeklyProfileRows(
     const route = normalizeText(row["路区名称"]);
     const postalCode = normalizePostalCode(row["邮编"]);
     if (!region || !site || !dsp || !route || !postalCode) return;
-    const attempted = normalizeNumber(row["领件量"]);
     const delivered = normalizeNumber(row["妥投量"]);
+    const attempted = delivered;
     const hours = deriveProfileHours(row, attempted);
     const base = {
       week,
@@ -341,11 +340,11 @@ function normalizePerformanceRows(rows: Record<string, unknown>[]) {
         dsp: normalizeText(row["DSP"] ?? row["车队名称"]),
         site: normalizeText(row["站点"] ?? row["转运站点"]),
         region: normalizeText(row["大区"]),
-        delivered: normalizeNumber(row["配送量"] ?? row["成功配送量"]),
+        delivered: normalizeNumber(
+          row["妥投量"] ?? row["配送量"] ?? row["成功配送量"],
+        ),
         attempted: normalizeNumber(
-          row["配送量（加派送失败）"] ??
-            row["配送量(加派送失败)"] ??
-            row["配送量（含派送失败）"],
+          row["妥投量"] ?? row["配送量"] ?? row["成功配送量"],
         ),
         sortHours: normalizeNumber(row["分拣耗时"]),
         transitHours: normalizeNumber(row["在途耗时"]),
@@ -368,11 +367,11 @@ function normalizePostalRows(rows: Record<string, unknown>[]) {
         dsp: normalizeText(row["DSP"] ?? row["车队名称"]),
         site: normalizeText(row["站点"] ?? row["转运站点"]),
         region: normalizeText(row["大区"]),
-        delivered: normalizeNumber(row["配送量"] ?? row["成功配送量"]),
+        delivered: normalizeNumber(
+          row["妥投量"] ?? row["配送量"] ?? row["成功配送量"],
+        ),
         attempted: normalizeNumber(
-          row["配送量（含派送失败）"] ??
-            row["配送量（加派送失败）"] ??
-            row["配送量"],
+          row["妥投量"] ?? row["配送量"] ?? row["成功配送量"],
         ),
         sortHours: normalizeNumber(row["分拣耗时"]),
         transitHours: normalizeNumber(row["在途耗时"]),
@@ -1084,7 +1083,7 @@ export default function Home() {
         itemWidth: 12,
         itemHeight: 8,
         textStyle: { color: "#64748b", fontSize: 11 },
-        data: ["单量", "作业PPH"],
+        data: ["妥投量", "妥投PPH"],
       },
       tooltip: {
         trigger: "axis",
@@ -1114,7 +1113,7 @@ export default function Home() {
             ...params.map(
               (item) =>
                 `${item.marker}${item.seriesName}：<strong>${
-                  item.seriesName === "作业PPH"
+                  item.seriesName === "妥投PPH"
                     ? formatNumber(item.value, 2)
                     : formatNumber(item.value)
                 }</strong>`,
@@ -1144,7 +1143,7 @@ export default function Home() {
         },
         {
           type: "value",
-          name: "单量",
+          name: "妥投量",
           nameTextStyle: { color: "#94a3b8", fontSize: 10, padding: [0, 0, 4, 0] },
           splitLine: { show: false },
           axisLabel: {
@@ -1156,7 +1155,7 @@ export default function Home() {
       ],
       series: [
         {
-          name: "单量",
+          name: "妥投量",
           type: "bar",
           yAxisIndex: 1,
           data: scopeTrend.map((item) => item.attempted),
@@ -1170,7 +1169,7 @@ export default function Home() {
           emphasis: { itemStyle: { color: "rgba(79, 143, 255, 0.68)" } },
         },
         {
-          name: "作业PPH",
+          name: "妥投PPH",
           type: "line",
           data: scopeTrend.map((item) => Number(item.operationPph.toFixed(2))),
           smooth: 0.28,
@@ -1245,7 +1244,7 @@ export default function Home() {
         items: latest
           ? [
               {
-                label: "本周作业PPH",
+                label: "本周妥投PPH",
                 value: formatNumber(latest.operationPph, 2),
                 meta: `${formatNumber(latest.attempted)} 单`,
                 tone: "blue",
@@ -1259,7 +1258,7 @@ export default function Home() {
                 tone: toneForChange(pphChange),
               },
               {
-                label: "单量环比",
+                label: "妥投量环比",
                 value: signedPercent(volumeChange),
                 meta: previous
                   ? `上周 ${formatNumber(previous.attempted)} 单`
@@ -1408,7 +1407,7 @@ export default function Home() {
       subtitle: `${currentRegionName} · ${selectedWeek}`,
       items: [
         {
-          label: "作业PPH",
+          label: "妥投PPH",
           value: formatNumber(currentMetrics.operationPph, 2),
           meta: "当前筛选口径",
           tone: "blue",
@@ -1420,18 +1419,17 @@ export default function Home() {
           tone: toneForChange(wow),
         },
         {
-          label: "妥投失败率",
-          value: formatPercent(currentMetrics.failRate),
-          meta: `${formatNumber(currentMetrics.attempted)} 单`,
-          tone: currentMetrics.failRate <= 0.01 ? "positive" : "negative",
+          label: "妥投单量",
+          value: formatNumber(currentMetrics.delivered),
+          meta: "当前筛选口径",
+          tone: "blue",
         },
       ],
     };
   }, [
     activeRegion,
     businessFilter,
-    currentMetrics.attempted,
-    currentMetrics.failRate,
+    currentMetrics.delivered,
     currentMetrics.operationPph,
     currentRegionName,
     currentRegionSource,
@@ -1457,10 +1455,6 @@ export default function Home() {
     p50: percentile(routePphValues, 0.5),
     p75: percentile(routePphValues, 0.75),
   };
-  const failP75 = percentile(
-    routeRows.map((row) => row.failRate),
-    0.75,
-  );
   const p75WatchRows = routeRows
     .filter((row) => row.operationPph >= quantiles.p75)
     .sort((a, b) => b.operationPph - a.operationPph);
@@ -2108,16 +2102,13 @@ export default function Home() {
       "路区",
       "站点",
       "DSP",
-      "成功配送量",
-      "配送量（含派送失败）",
+      "妥投量",
       "分拣耗时",
       "在途耗时",
       "在途时长口径",
       "配送耗时",
       "总工时",
-      "作业PPH",
-      "成功PPH",
-      "派送失败率",
+      "妥投PPH",
       "周环比",
       "本区位置",
       "业务模式",
@@ -2137,7 +2128,6 @@ export default function Home() {
         row.route,
         row.site,
         row.dsp,
-        row.delivered,
         row.attempted,
         row.sortHours.toFixed(2),
         row.transitHours.toFixed(2),
@@ -2147,8 +2137,6 @@ export default function Home() {
         row.deliveryHours.toFixed(2),
         row.totalHours.toFixed(2),
         row.operationPph.toFixed(2),
-        row.successPph.toFixed(2),
-        row.failRate.toFixed(4),
         row.wow === null ? "" : row.wow.toFixed(4),
         row.percentile,
         row.businessMode,
@@ -2183,16 +2171,13 @@ export default function Home() {
       "路区",
       "站点",
       "DSP",
-      "成功配送量",
-      "配送量（含派送失败）",
+      "妥投量",
       "分拣耗时",
       "在途耗时",
       "在途时长口径",
       "配送耗时",
       "总工时",
-      "作业PPH",
-      "成功PPH",
-      "派送失败率",
+      "妥投PPH",
     ];
     const lines = sortedPostalRows.map((row) =>
       [
@@ -2202,7 +2187,6 @@ export default function Home() {
         row.route ?? "",
         row.site,
         row.dsp,
-        row.delivered,
         row.attempted,
         row.sortHours.toFixed(2),
         row.transitHours.toFixed(2),
@@ -2212,8 +2196,6 @@ export default function Home() {
         row.deliveryHours.toFixed(2),
         row.totalHours.toFixed(2),
         row.operationPph.toFixed(2),
-        row.successPph.toFixed(2),
-        row.failRate.toFixed(4),
       ]
         .map(csvEscape)
         .join(","),
@@ -2247,11 +2229,8 @@ export default function Home() {
       "路区",
       "站点",
       "DSP",
-      "配送量（含派送失败）",
-      "成功配送量",
-      "作业PPH",
-      "成功PPH",
-      "派送失败率",
+      "妥投量",
+      "妥投PPH",
       "周环比",
       "名单指标",
       "指标说明",
@@ -2269,10 +2248,7 @@ export default function Home() {
         row.site,
         row.dsp,
         row.attempted,
-        row.delivered,
         row.operationPph.toFixed(2),
-        row.successPph.toFixed(2),
-        row.failRate.toFixed(4),
         row.wow === null ? "" : row.wow.toFixed(4),
         value(row),
         caption,
@@ -2316,12 +2292,9 @@ export default function Home() {
       "邮编",
       "站点",
       "DSP",
-      "配送量（含派送失败）",
-      "成功配送量",
+      "妥投量",
       "总工时",
-      "作业PPH",
-      "成功PPH",
-      "派送失败率",
+      "妥投PPH",
       "名单指标",
       "指标说明",
     ];
@@ -2334,11 +2307,8 @@ export default function Home() {
         row.site,
         row.dsp,
         row.attempted,
-        row.delivered,
         row.totalHours.toFixed(2),
         row.operationPph.toFixed(2),
-        row.successPph.toFixed(2),
-        row.failRate.toFixed(4),
         value(row),
         caption,
       ]
@@ -2462,20 +2432,23 @@ export default function Home() {
   const similarRoutes = useMemo(() => {
     if (!selectedRoute) return [];
     const sourceProperty = propertyMap.get(selectedRoute.route);
+    const selectedRouteMetrics = aggregatePerformance(
+      routeSearchRows.filter((row) => row.route === selectedRoute.route),
+    );
     return routeSearchRows
-      .filter((row) => rowKey(row) !== rowKey(selectedRoute))
+      .filter((row) => row.route !== selectedRoute.route)
       .map((row) => {
         const property = propertyMap.get(row.route);
         const volumeGap =
-          Math.abs(row.attempted - selectedRoute.attempted) /
-          Math.max(1, selectedRoute.attempted);
+          Math.abs(row.attempted - selectedRouteMetrics.attempted) /
+          Math.max(1, selectedRouteMetrics.attempted);
         const addressGap = addressDistributionDifference(
           sourceProperty?.addressMix ?? "",
           property?.addressMix ?? "",
         );
         const pphGap =
-          Math.abs(row.operationPph - selectedRoute.operationPph) /
-          Math.max(0.01, selectedRoute.operationPph);
+          Math.abs(row.operationPph - selectedRouteMetrics.operationPph) /
+          Math.max(0.01, selectedRouteMetrics.operationPph);
         return {
           row,
           volumeGap,
@@ -2489,15 +2462,40 @@ export default function Home() {
   }, [propertyMap, routeSearchRows, selectedRoute]);
   const selectedRouteHistory = useMemo(() => {
     if (!selectedRoute) return [];
-    const key = rowKey(selectedRoute);
     return weeks
       .filter((week) => weeks.indexOf(week) <= currentWeekIndex)
-      .map((week) =>
-        (weeklyRouteMap.get(week) ?? []).find((row) => rowKey(row) === key),
-      )
+      .map((week) => {
+        const matches = (weeklyRouteMap.get(week) ?? []).filter(
+          (row) => row.route === selectedRoute.route,
+        );
+        if (!matches.length) return undefined;
+        const metrics = aggregatePerformance(matches);
+        const sites = [...new Set(matches.map((row) => row.site))];
+        const dsps = [...new Set(matches.map((row) => row.dsp))];
+        const selectedCombination = matches.find(
+          (row) => rowKey(row) === rowKey(selectedRoute),
+        );
+        return {
+          ...matches[0],
+          ...metrics,
+          site: sites.join(" / "),
+          dsp: dsps.join(" / "),
+          percentile:
+            selectedCombination?.percentile ?? matches[0].percentile,
+          estimatedTransitRows: sum(
+            matches.map((row) => row.estimatedTransitRows ?? 0),
+          ),
+          transitHoursAverageBasis: matches.some(
+            (row) => row.estimatedTransitRows,
+          )
+            ? "路区内DSP汇总（部分按均值补齐）"
+            : undefined,
+        } satisfies RouteRow;
+      })
       .filter((row): row is RouteRow => Boolean(row))
       .slice(-4);
   }, [currentWeekIndex, selectedRoute, weeklyRouteMap, weeks]);
+  const selectedRouteDetail = selectedRouteHistory.at(-1) ?? selectedRoute;
   const selectedRouteTrendOption = useMemo(() => {
     const averagePph = selectedRouteHistory.length
       ? sum(selectedRouteHistory.map((item) => item.operationPph)) /
@@ -2514,7 +2512,7 @@ export default function Home() {
         itemWidth: 10,
         itemHeight: 7,
         textStyle: { color: "#64748b", fontSize: 8 },
-        data: ["单量", "作业PPH"],
+        data: ["妥投量", "妥投PPH"],
       },
       tooltip: {
         trigger: "axis",
@@ -2540,7 +2538,7 @@ export default function Home() {
             ...params.map(
               (item) =>
                 `${item.marker}${item.seriesName}：<strong>${
-                  item.seriesName === "作业PPH"
+                  item.seriesName === "妥投PPH"
                     ? formatNumber(item.value, 2)
                     : `${formatNumber(item.value)} 单`
                 }</strong>`,
@@ -2570,7 +2568,7 @@ export default function Home() {
         },
         {
           type: "value",
-          name: "单量",
+          name: "妥投量",
           nameTextStyle: { color: "#94a3b8", fontSize: 8 },
           splitLine: { show: false },
           axisLabel: {
@@ -2582,7 +2580,7 @@ export default function Home() {
       ],
       series: [
         {
-          name: "单量",
+          name: "妥投量",
           type: "bar",
           yAxisIndex: 1,
           data: selectedRouteHistory.map((item) => item.attempted),
@@ -2596,7 +2594,7 @@ export default function Home() {
           emphasis: { itemStyle: { color: "rgba(79, 143, 255, 0.65)" } },
         },
         {
-          name: "作业PPH",
+          name: "妥投PPH",
           type: "line",
           data: selectedRouteHistory.map((item) =>
             Number(item.operationPph.toFixed(2)),
@@ -2655,7 +2653,7 @@ export default function Home() {
     const toValue = isVolume ? to.attempted : to.operationPph;
     return {
       title: selectedRouteContext?.title || "较上周变化",
-      metric: isVolume ? "配送量" : "作业PPH",
+      metric: isVolume ? "妥投量" : "妥投PPH",
       unit: isVolume ? "单" : "",
       fromWeek: from.week,
       toWeek: to.week,
@@ -2884,8 +2882,8 @@ export default function Home() {
           路区: selectedRoute.route,
           邮编: row.postalCode,
           DSP: row.dsp,
-          本周配送量: row.attempted,
-          上周配送量: previous?.attempted ?? "",
+          本周妥投量: row.attempted,
+          上周妥投量: previous?.attempted ?? "",
           单量增加: previous ? volumeIncrease : "",
           路区单量增加: isRoutePostalMismatchContext
             ? routeVolumeIncrease
@@ -2899,14 +2897,12 @@ export default function Home() {
           单量环比: previous?.attempted
             ? volumeIncrease / previous.attempted
             : "",
-          本周作业PPH: Number(row.operationPph.toFixed(2)),
-          上周作业PPH: previous
+          本周妥投PPH: Number(row.operationPph.toFixed(2)),
+          上周妥投PPH: previous
             ? Number(previous.operationPph.toFixed(2))
             : "",
           PPH环比: pphChange ?? "",
           连续周期累计变化: cumulativeChange || "",
-          成功PPH: Number(row.successPph.toFixed(2)),
-          派送失败率: row.failRate,
           在途时长: Number(row.transitHours.toFixed(2)),
           在途时长口径: row.estimatedTransitRows
             ? row.transitHoursAverageBasis || "均值补齐"
@@ -3005,7 +3001,7 @@ export default function Home() {
     const toValue = isVolume ? to.attempted : to.operationPph;
     return {
       title: selectedPostalContext?.title || "较上周变化",
-      metric: isVolume ? "配送量" : "作业PPH",
+      metric: isVolume ? "妥投量" : "妥投PPH",
       unit: isVolume ? "单" : "",
       fromWeek: from.week,
       toWeek: to.week,
@@ -3580,14 +3576,14 @@ export default function Home() {
           </section>
 
           {scopeFocus ? (
-            <section className="scope-trend-panel" aria-label="PPH与单量四周趋势">
+            <section className="scope-trend-panel" aria-label="PPH与妥投量四周趋势">
               <div className="scope-trend-head">
                 <div>
                   <span className="scope-trend-kicker">
                     <Activity size={13} /> 4-WEEK PERFORMANCE
                   </span>
-                  <h2>{scopeFocusLabel} · PPH与单量趋势</h2>
-                  <p>折线为作业PPH，柱状为配送单量；均按当前全部筛选条件汇总</p>
+                  <h2>{scopeFocusLabel} · PPH与妥投量趋势</h2>
+                  <p>折线为妥投PPH，柱状为妥投量；均按当前全部筛选条件汇总</p>
                 </div>
                 <div className="scope-trend-kpis">
                   <div>
@@ -3597,7 +3593,7 @@ export default function Home() {
                     </strong>
                   </div>
                   <div>
-                    <span>本周单量</span>
+                    <span>本周妥投量</span>
                     <strong>
                       {formatNumber(scopeTrend.at(-1)?.attempted ?? 0)}
                     </strong>
@@ -3649,7 +3645,7 @@ export default function Home() {
               </div>
               <div>
                 <h3>路区重点名单</h3>
-                <p>以路区为对象识别连续改善、高效与单量效率错配</p>
+                <p>以路区为对象识别连续改善、高效与妥投量效率错配</p>
               </div>
             </div>
             <div className="watchlist-grid">
@@ -3702,11 +3698,11 @@ export default function Home() {
                   rows: p75WatchRows,
                   value: (row: RouteRow) =>
                     formatNumber(row.operationPph, 2),
-                  caption: "作业PPH",
+                  caption: "妥投PPH",
                 },
                 {
                   id: "volume-up-pph-flat",
-                  title: "单量上升但PPH未上升",
+                  title: "妥投量上升但PPH未上升",
                   icon: ArrowUpRight,
                   tone: "orange",
                   rows: priorityLists.volumeUpPphFlat,
@@ -3715,7 +3711,7 @@ export default function Home() {
                       priorityLists.volumeUpPphFlatMap.get(row.route)
                         ?.volumeChange ?? 0,
                     )}`,
-                  caption: "较上周单量涨幅 · PPH涨幅≤1%",
+                  caption: "较上周妥投量涨幅 · PPH涨幅≤1%",
                 },
               ].map((list) => {
                 const Icon = list.icon;
@@ -3901,11 +3897,11 @@ export default function Home() {
                   rows: postalPriorityLists.p75Rows,
                   value: (row: PostalRow) =>
                     formatNumber(row.operationPph, 2),
-                  caption: "作业PPH",
+                  caption: "妥投PPH",
                 },
                 {
                   id: "postal-volume-up-pph-flat",
-                  title: "单量上升但PPH未上升",
+                  title: "妥投量上升但PPH未上升",
                   icon: ArrowUpRight,
                   tone: "orange",
                   rows: postalPriorityLists.volumeUpPphFlat,
@@ -4034,38 +4030,38 @@ export default function Home() {
 
           <section className="metrics-grid" aria-label="核心指标">
             <MetricCard
-              label="作业PPH"
+              label="妥投PPH"
               value={formatNumber(currentMetrics.operationPph, 2)}
-              detail="配送量（含失败）÷ 总时长"
+              detail="妥投量 ÷ 总时长"
               icon={Gauge}
               change={wow}
               tone={wow === null ? "blue" : wow >= 0 ? "green" : "red"}
             />
             <MetricCard
-              label="成功PPH"
-              value={formatNumber(currentMetrics.successPph, 2)}
-              detail="成功配送量 ÷ 总时长"
+              label="日均妥投量"
+              value={formatNumber(Math.round(currentMetrics.delivered / 7))}
+              detail="本周妥投量 ÷ 7天"
               icon={PackageCheck}
               tone="green"
             />
             <MetricCard
               label="近4周中位数"
               value={formatNumber(recentMedian, 2)}
-              detail={`${weeklyTrend.slice(-4).length} 个可用周次的作业PPH`}
+              detail={`${weeklyTrend.slice(-4).length} 个可用周次的妥投PPH`}
               icon={Activity}
               tone="blue"
             />
             <MetricCard
               label={`${currentRegionName} P50`}
               value={formatNumber(quantiles.p50, 2)}
-              detail="本区作业PPH中位数"
+              detail="本区妥投PPH中位数"
               icon={BarChart3}
               tone="blue"
             />
             <MetricCard
-              label="总配送量"
-              value={formatNumber(currentMetrics.attempted)}
-              detail={`成功 ${formatNumber(currentMetrics.delivered)} 单`}
+              label="妥投单量"
+              value={formatNumber(currentMetrics.delivered)}
+              detail="当前筛选口径"
               icon={Truck}
               tone="blue"
             />
@@ -4083,7 +4079,7 @@ export default function Home() {
               <SectionHeader
                 eyebrow="QUANTILE WATCH"
                 title="P75 / P25 路区观察"
-                description="按当前大区作业PPH分位数识别高效与关注路区"
+                description="按当前大区妥投PPH分位数识别高效与关注路区"
               />
               <div className="quantile-watch-grid">
                 {[
@@ -4125,7 +4121,7 @@ export default function Home() {
                             group.title,
                             group.rows,
                             (row) => formatNumber(row.operationPph, 2),
-                            `作业PPH ${group.threshold}`,
+                            `妥投PPH ${group.threshold}`,
                           )
                         }
                         disabled={!group.rows.length}
@@ -4148,7 +4144,7 @@ export default function Home() {
                                     ? "p75-high-pph"
                                     : "p25-low-pph",
                                 title: group.title,
-                                caption: `作业PPH ${group.threshold}`,
+                                caption: `妥投PPH ${group.threshold}`,
                               })
                             }
                           >
@@ -4225,14 +4221,14 @@ export default function Home() {
                 <small>当前大区独立统计</small>
               </div>
               <div className="postal-metric">
-                <span>配送量</span>
+                <span>妥投量</span>
                 <strong>{formatNumber(postalMetrics.attempted)}</strong>
-                <small>含派送失败</small>
+                <small>当前筛选口径</small>
               </div>
               <div className="postal-metric">
-                <span>作业PPH</span>
+                <span>妥投PPH</span>
                 <strong>{formatNumber(postalMetrics.operationPph, 2)}</strong>
-                <small>配送量 ÷ 总工时</small>
+                <small>妥投量 ÷ 总工时</small>
               </div>
               <div className="postal-metric">
                 <span>总工时</span>
@@ -4253,7 +4249,7 @@ export default function Home() {
                     <th>路区 / 站点 / DSP</th>
                     <th>
                       <button onClick={() => togglePostalSort("attempted")}>
-                        配送量 <ArrowUpDown size={12} />
+                        妥投量 <ArrowUpDown size={12} />
                       </button>
                     </th>
                     <th>在途时长</th>
@@ -4266,17 +4262,7 @@ export default function Home() {
                       <button
                         onClick={() => togglePostalSort("operationPph")}
                       >
-                        作业PPH <ArrowUpDown size={12} />
-                      </button>
-                    </th>
-                    <th>
-                      <button onClick={() => togglePostalSort("successPph")}>
-                        成功PPH <ArrowUpDown size={12} />
-                      </button>
-                    </th>
-                    <th>
-                      <button onClick={() => togglePostalSort("failRate")}>
-                        失败率 <ArrowUpDown size={12} />
+                        妥投PPH <ArrowUpDown size={12} />
                       </button>
                     </th>
                     <th />
@@ -4320,14 +4306,6 @@ export default function Home() {
                       <td>{formatNumber(row.totalHours)} h</td>
                       <td>
                         <strong>{formatNumber(row.operationPph, 2)}</strong>
-                      </td>
-                      <td>{formatNumber(row.successPph, 2)}</td>
-                      <td
-                        className={
-                          row.failRate >= 0.05 ? "cell-warning" : undefined
-                        }
-                      >
-                        {formatPercent(row.failRate, 1)}
                       </td>
                       <td>
                         <button
@@ -4428,23 +4406,13 @@ export default function Home() {
                     <th>站点 / DSP</th>
                     <th>
                       <button onClick={() => toggleSort("attempted")}>
-                        配送量 <ArrowUpDown size={12} />
+                        妥投量 <ArrowUpDown size={12} />
                       </button>
                     </th>
                     <th>在途时长</th>
                     <th>
                       <button onClick={() => toggleSort("operationPph")}>
-                        作业PPH <ArrowUpDown size={12} />
-                      </button>
-                    </th>
-                    <th>
-                      <button onClick={() => toggleSort("successPph")}>
-                        成功PPH <ArrowUpDown size={12} />
-                      </button>
-                    </th>
-                    <th>
-                      <button onClick={() => toggleSort("failRate")}>
-                        失败率 <ArrowUpDown size={12} />
+                        妥投PPH <ArrowUpDown size={12} />
                       </button>
                     </th>
                     <th>
@@ -4479,7 +4447,7 @@ export default function Home() {
                       </td>
                       <td>
                         <strong>{formatNumber(row.attempted)}</strong>
-                        <small>成功 {formatNumber(row.delivered)}</small>
+                        <small>妥投单量</small>
                       </td>
                       <td>
                         <strong>{formatNumber(row.transitHours, 1)} h</strong>
@@ -4491,18 +4459,6 @@ export default function Home() {
                       </td>
                       <td>
                         <strong>{formatNumber(row.operationPph, 2)}</strong>
-                      </td>
-                      <td>{formatNumber(row.successPph, 2)}</td>
-                      <td>
-                        <span
-                          className={
-                            row.failRate >= failP75
-                              ? "cell-warning"
-                              : undefined
-                          }
-                        >
-                          {formatPercent(row.failRate)}
-                        </span>
                       </td>
                       <td>
                         {row.wow === null ? (
@@ -4604,25 +4560,25 @@ export default function Home() {
         </div>
       </main>
 
-      {selectedRoute ? (
+      {selectedRoute && selectedRouteDetail ? (
         <div className="drawer-layer">
           <button
             className="drawer-backdrop"
             onClick={closeRouteDetails}
             aria-label="关闭路区详情"
           />
-          <section className="route-trend-flyout" aria-label="路区四周PPH与单量趋势">
+          <section className="route-trend-flyout" aria-label="路区四周PPH与妥投量趋势">
             <div className="drawer-route-trend-head">
               <div>
                 <span>
                   <Activity size={12} /> 4-WEEK PERFORMANCE
                 </span>
-                <strong>{selectedRoute.route} · 四周PPH与单量趋势</strong>
-                <small>折线为作业PPH，柱状为配送单量</small>
+                <strong>{selectedRoute.route} · 四周PPH与妥投量趋势</strong>
+                <small>折线为妥投PPH，柱状为妥投量</small>
               </div>
               <div>
                 <span>本周</span>
-                <strong>{formatNumber(selectedRoute.operationPph, 2)}</strong>
+                <strong>{formatNumber(selectedRouteDetail.operationPph, 2)}</strong>
                 <small>PPH</small>
               </div>
             </div>
@@ -4630,7 +4586,7 @@ export default function Home() {
               <div
                 className="drawer-route-trend-chart"
                 role="img"
-                aria-label={`${selectedRoute.route}最近${selectedRouteHistory.length}周作业PPH与配送单量趋势图`}
+                aria-label={`${selectedRoute.route}最近${selectedRouteHistory.length}周妥投PPH与妥投量趋势图`}
               >
                 <ReactECharts
                   option={selectedRouteTrendOption}
@@ -4649,7 +4605,7 @@ export default function Home() {
                 <span>{selectedRoute.region} · {selectedRoute.week}</span>
                 <h2>{selectedRoute.route}</h2>
                 <p>
-                  {selectedRoute.site} · {selectedRoute.dsp}
+                  {selectedRouteDetail.site} · {selectedRouteDetail.dsp}
                 </p>
                 <div className="drawer-postal-impact-head">
                   <span className="drawer-postal-impact-label">
@@ -4791,7 +4747,7 @@ export default function Home() {
                             </strong>
                             <small>
                               {pphChange === null
-                                ? "作业PPH"
+                                ? "妥投PPH"
                                 : `PPH ${pphChange >= 0 ? "+" : ""}${formatPercent(pphChange)}`}
                             </small>
                           </span>
@@ -4809,13 +4765,13 @@ export default function Home() {
               <div className="drawer-metrics route-drawer-metrics">
                 <div>
                   <span>PPH值</span>
-                  <strong>{formatNumber(selectedRoute.operationPph, 2)}</strong>
-                  <small>{selectedRoute.percentile}</small>
+                  <strong>{formatNumber(selectedRouteDetail.operationPph, 2)}</strong>
+                  <small>{selectedRouteDetail.percentile}</small>
                 </div>
                 <div>
-                  <span>单量</span>
-                  <strong>{formatNumber(selectedRoute.attempted)} 单</strong>
-                  <small>配送总量</small>
+                  <span>妥投量</span>
+                  <strong>{formatNumber(selectedRouteDetail.attempted)} 单</strong>
+                  <small>当前路区全部DSP</small>
                 </div>
               </div>
 
@@ -4826,17 +4782,17 @@ export default function Home() {
                 </div>
                 <div className="postal-time-list">
                   {[
-                    { label: "分拣", value: selectedRoute.sortHours },
-                    { label: "在途", value: selectedRoute.transitHours },
-                    { label: "配送", value: selectedRoute.deliveryHours },
+                    { label: "分拣", value: selectedRouteDetail.sortHours },
+                    { label: "在途", value: selectedRouteDetail.transitHours },
+                    { label: "配送", value: selectedRouteDetail.deliveryHours },
                   ].map((item) => {
                     const ratio =
-                      selectedRoute.totalHours > 0
-                        ? item.value / selectedRoute.totalHours
+                      selectedRouteDetail.totalHours > 0
+                        ? item.value / selectedRouteDetail.totalHours
                         : 0;
                     const isEstimatedTransit =
                       item.label === "在途" &&
-                      Boolean(selectedRoute.estimatedTransitRows);
+                      Boolean(selectedRouteDetail.estimatedTransitRows);
                     return (
                       <div key={item.label}>
                         <div>
@@ -4858,10 +4814,10 @@ export default function Home() {
                     );
                   })}
                 </div>
-                {selectedRoute.estimatedTransitRows ? (
+                {selectedRouteDetail.estimatedTransitRows ? (
                   <p className="average-basis-note">
                     在途时长为0，已使用
-                    {selectedRoute.transitHoursAverageBasis || "同类记录均值"}
+                    {selectedRouteDetail.transitHoursAverageBasis || "同类记录均值"}
                     补齐。
                   </p>
                 ) : null}
@@ -4986,9 +4942,9 @@ export default function Home() {
               </button>
             </div>
             <div className="drawer-scroll">
-              <div className="drawer-metrics">
+              <div className="drawer-metrics route-drawer-metrics">
                 <div>
-                  <span>作业PPH</span>
+                  <span>PPH值</span>
                   <strong>
                     {formatNumber(selectedPostal.operationPph, 2)}
                   </strong>
@@ -5001,19 +4957,9 @@ export default function Home() {
                   </small>
                 </div>
                 <div>
-                  <span>成功PPH</span>
-                  <strong>{formatNumber(selectedPostal.successPph, 2)}</strong>
-                  <small>{formatNumber(selectedPostal.delivered)} 单</small>
-                </div>
-                <div>
-                  <span>失败率</span>
-                  <strong>{formatPercent(selectedPostal.failRate)}</strong>
-                  <small>
-                    {formatNumber(
-                      selectedPostal.attempted - selectedPostal.delivered,
-                    )}{" "}
-                    单
-                  </small>
+                  <span>妥投量</span>
+                  <strong>{formatNumber(selectedPostal.delivered)} 单</strong>
+                  <small>当前邮编</small>
                 </div>
               </div>
 
@@ -5140,12 +5086,12 @@ export default function Home() {
                       <div>
                         <strong>{row.postalCode}</strong>
                         <span>
-                          {row.site} · 配送量 {formatNumber(row.attempted)}
+                          {row.site} · 妥投量 {formatNumber(row.attempted)}
                         </span>
                       </div>
                       <div>
                         <strong>{formatNumber(row.operationPph, 2)}</strong>
-                        <span>作业PPH</span>
+                        <span>妥投PPH</span>
                       </div>
                     </button>
                   ))}
