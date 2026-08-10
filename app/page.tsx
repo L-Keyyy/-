@@ -210,6 +210,19 @@ function expandWorksheetRange(sheet: XLSX.WorkSheet) {
   sheet["!ref"] = XLSX.utils.encode_range(range);
 }
 
+function expandWorksheetMerges(sheet: XLSX.WorkSheet) {
+  for (const merge of sheet["!merges"] ?? []) {
+    const source = sheet[XLSX.utils.encode_cell(merge.s)];
+    if (!source) continue;
+    for (let row = merge.s.r; row <= merge.e.r; row += 1) {
+      for (let column = merge.s.c; column <= merge.e.c; column += 1) {
+        const address = XLSX.utils.encode_cell({ r: row, c: column });
+        if (!sheet[address]) sheet[address] = { ...source };
+      }
+    }
+  }
+}
+
 async function readWorkbookRows(file: File) {
   const isCsv = file.name.toLowerCase().endsWith(".csv");
   const workbook = isCsv
@@ -220,10 +233,102 @@ async function readWorkbookRows(file: File) {
       })
     : XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  expandWorksheetMerges(sheet);
   expandWorksheetRange(sheet);
   return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
     defval: null,
   });
+}
+
+function deriveProfileHours(
+  row: Record<string, unknown>,
+  attempted: number,
+) {
+  const sourcePph = normalizeNumber(row["PPH"]);
+  const perHundredDeliveryMinutes = normalizeNumber(
+    row["百单派件时长(min)"],
+  );
+  const perHundredSortMinutes = normalizeNumber(row["百单分拣时长(min)"]);
+  const averageDeliveryHours = normalizeNumber(row["司机派件时长(h)"]);
+  const averageSortHours = normalizeNumber(row["司机分拣时长(h)"]);
+  const averageTransitHours = normalizeNumber(row["司机行驶时长(h)"]);
+  const deliveryHours =
+    perHundredDeliveryMinutes > 0
+      ? (perHundredDeliveryMinutes * attempted) / 6000
+      : sourcePph > 0
+        ? attempted / sourcePph
+        : 0;
+  const shiftScale =
+    deliveryHours > 0 && averageDeliveryHours > 0
+      ? deliveryHours / averageDeliveryHours
+      : 0;
+  const sortHours =
+    shiftScale > 0
+      ? averageSortHours * shiftScale
+      : perHundredSortMinutes > 0
+        ? (perHundredSortMinutes * attempted) / 6000
+        : 0;
+  const transitHours = shiftScale > 0 ? averageTransitHours * shiftScale : 0;
+  return {
+    sortHours,
+    transitHours,
+    deliveryHours,
+    totalHours: sortHours + transitHours + deliveryHours,
+  };
+}
+
+function isWeeklyProfileRows(rows: Record<string, unknown>[]) {
+  const sample = rows.find((row) => normalizeText(row["路区名称"]));
+  return Boolean(
+    sample &&
+      "大区编码" in sample &&
+      "站点名称" in sample &&
+      "DSP名称" in sample &&
+      "邮编" in sample &&
+      "领件量" in sample &&
+      "妥投量" in sample,
+  );
+}
+
+function normalizeWeeklyProfileRows(
+  rows: Record<string, unknown>[],
+  week: string,
+  weekStart: string,
+) {
+  const records: PerformanceRecord[] = [];
+  const postalRecords: PostalPerformanceRecord[] = [];
+  rows.forEach((row) => {
+    const regionCode = normalizeText(row["大区编码"]).toUpperCase();
+    if (!regionCode || regionCode === "总和") return;
+    const region = REGION_OPTIONS.find(
+      (option) => option.code === regionCode,
+    )?.source;
+    const site = normalizeText(row["站点名称"]);
+    const dsp = normalizeText(row["DSP名称"]);
+    const route = normalizeText(row["路区名称"]);
+    const postalCode = normalizePostalCode(row["邮编"]);
+    if (!region || !site || !dsp || !route || !postalCode) return;
+    const attempted = normalizeNumber(row["领件量"]);
+    const delivered = normalizeNumber(row["妥投量"]);
+    const hours = deriveProfileHours(row, attempted);
+    const base = {
+      week,
+      weekStart,
+      dsp,
+      site,
+      delivered,
+      attempted,
+      ...hours,
+    };
+    records.push({ ...base, route, region });
+    postalRecords.push({
+      ...base,
+      postalCode,
+      route,
+      region: regionCode,
+    });
+  });
+  return { records, postalRecords };
 }
 
 function normalizePerformanceRows(rows: Record<string, unknown>[]) {
@@ -1631,33 +1736,110 @@ export default function Home() {
     try {
       const rows = await readWorkbookRows(file);
       if (type === "performance") {
-        const nextRecords = normalizePerformanceRows(rows);
-        if (!nextRecords.length)
-          throw new Error("未识别到周数、路区、大区与配送字段。");
-        const transitFilled = imputeTransitHours(nextRecords);
-        const cleaned = cleanPerformanceRecords(transitFilled.records);
-        const retainedEstimates = cleaned.records.filter(
-          (row) => row.transitHoursEstimated,
-        ).length;
-        setRecords(cleaned.records);
-        setExcludedCount(cleaned.excluded);
-        setEstimatedTransitCount(retainedEstimates);
-        const nextWeeks = sortWeeks(cleaned.records.map((row) => row.week));
-        setSelectedWeek(nextWeeks.at(-1) ?? "");
-        setSourceMeta({
-          sourceRows: rows.length,
-          aggregatedRows: cleaned.records.length,
-          propertyRows: properties.length,
-          postalRows: postalRecords.length,
-          postalPropertyRows: postalProperties.length,
-          postalCostRows: postalCosts.length,
-          estimatedTransitRows: retainedEstimates,
-          estimatedPostalTransitRows: estimatedPostalTransitCount,
-          generatedAt: new Date().toISOString(),
-        });
-        setNotice(
-          `运营明细已更新：保留 ${formatNumber(cleaned.records.length)} 条，补齐 ${formatNumber(retainedEstimates)} 条均值在途时长，自动剔除 ${formatNumber(cleaned.excluded)} 条未达门槛、异常或空载记录。`,
-        );
+        if (isWeeklyProfileRows(rows)) {
+          const fileWeek = file.name.match(/W\d+/i)?.[0]?.toUpperCase();
+          const latestWeek = weeks.at(-1) ?? "W0";
+          const latestWeekNumber = Number.parseInt(latestWeek.slice(1), 10) || 0;
+          const targetWeek = fileWeek ?? `W${latestWeekNumber + 1}`;
+          const targetWeekNumber =
+            Number.parseInt(targetWeek.slice(1), 10) || latestWeekNumber + 1;
+          const existingWeekStart = records.find(
+            (row) => row.week === targetWeek,
+          )?.weekStart;
+          const latestWeekStart = records.find(
+            (row) => row.week === latestWeek,
+          )?.weekStart;
+          const inferredStart = latestWeekStart
+            ? new Date(latestWeekStart)
+            : new Date();
+          if (!existingWeekStart) {
+            inferredStart.setUTCDate(
+              inferredStart.getUTCDate() +
+                Math.max(1, targetWeekNumber - latestWeekNumber) * 7,
+            );
+          }
+          const weekStart =
+            existingWeekStart ?? inferredStart.toISOString();
+          const normalized = normalizeWeeklyProfileRows(
+            rows,
+            targetWeek,
+            weekStart,
+          );
+          if (!normalized.records.length)
+            throw new Error("未识别到有效的路区画像明细。");
+          const cleaned = cleanPerformanceRecords(normalized.records);
+          const cleanedPostal = cleanPostalPerformanceRecords(
+            normalized.postalRecords,
+          );
+          const combinedRecords = [
+            ...records.filter((row) => row.week !== targetWeek),
+            ...cleaned.records,
+          ];
+          const combinedPostalRecords = [
+            ...postalRecords.filter((row) => row.week !== targetWeek),
+            ...cleanedPostal.records,
+          ];
+          setRecords(combinedRecords);
+          setPostalRecords(combinedPostalRecords);
+          setSelectedWeek(targetWeek);
+          setExcludedCount((current) => current + cleaned.excluded);
+          setExcludedPostalCount(
+            (current) => current + cleanedPostal.excluded,
+          );
+          setPostalSearch("");
+          setPage(1);
+          setPostalPage(1);
+          setSourceMeta({
+            sourceRows: combinedRecords.length,
+            aggregatedRows: combinedRecords.length,
+            propertyRows: properties.length,
+            postalRows: combinedPostalRecords.length,
+            postalPropertyRows: postalProperties.length,
+            postalCostRows: postalCosts.length,
+            estimatedTransitRows: estimatedTransitCount,
+            estimatedPostalTransitRows: estimatedPostalTransitCount,
+            generatedAt: new Date().toISOString(),
+          });
+          const startDate = new Date(weekStart);
+          const endDate = new Date(weekStart);
+          endDate.setUTCDate(endDate.getUTCDate() + 6);
+          const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
+            month: "numeric",
+            day: "numeric",
+            timeZone: "UTC",
+          });
+          setNotice(
+            `${targetWeek} 已更新（${dateFormatter.format(startDate)}—${dateFormatter.format(endDate)}）：路区 ${formatNumber(cleaned.records.length)} 条、邮编 ${formatNumber(cleanedPostal.records.length)} 条，已自动切换到新周次。`,
+          );
+        } else {
+          const nextRecords = normalizePerformanceRows(rows);
+          if (!nextRecords.length)
+            throw new Error("未识别到周数、路区、大区与配送字段。");
+          const transitFilled = imputeTransitHours(nextRecords);
+          const cleaned = cleanPerformanceRecords(transitFilled.records);
+          const retainedEstimates = cleaned.records.filter(
+            (row) => row.transitHoursEstimated,
+          ).length;
+          setRecords(cleaned.records);
+          setExcludedCount(cleaned.excluded);
+          setEstimatedTransitCount(retainedEstimates);
+          const nextWeeks = sortWeeks(cleaned.records.map((row) => row.week));
+          setSelectedWeek(nextWeeks.at(-1) ?? "");
+          setSourceMeta({
+            sourceRows: rows.length,
+            aggregatedRows: cleaned.records.length,
+            propertyRows: properties.length,
+            postalRows: postalRecords.length,
+            postalPropertyRows: postalProperties.length,
+            postalCostRows: postalCosts.length,
+            estimatedTransitRows: retainedEstimates,
+            estimatedPostalTransitRows: estimatedPostalTransitCount,
+            generatedAt: new Date().toISOString(),
+          });
+          setNotice(
+            `运营明细已更新：保留 ${formatNumber(cleaned.records.length)} 条，补齐 ${formatNumber(retainedEstimates)} 条均值在途时长，自动剔除 ${formatNumber(cleaned.excluded)} 条未达门槛、异常或空载记录。`,
+          );
+        }
       } else if (type === "postal") {
         const nextPostalRecords = normalizePostalRows(rows);
         if (!nextPostalRecords.length)
@@ -2902,6 +3084,7 @@ export default function Home() {
               <div>
                 <strong>数据工作区</strong>
                 <span>
+                  周度路区画像表可直接上传，自动更新下一周及邮编数据 ·
                   按“路区名称”自动关联 · 仅保留配送量≥100 · 已剔除{" "}
                   {formatNumber(excludedCount)} 条未达门槛、异常或空载记录 ·
                   在途为0按同站点/大区同周单均时长均值补齐：路区{" "}
@@ -2946,16 +3129,17 @@ export default function Home() {
                 下载HTML周报
               </button>
               <button
-                className="secondary-button"
+                className="primary-button"
                 onClick={() => performanceInput.current?.click()}
                 disabled={uploading !== null}
+                title="支持包含大区编码、站点名称、DSP名称、路区名称和邮编的周度路区画像表"
               >
                 {uploading === "performance" ? (
                   <RefreshCw className="spin" size={16} />
                 ) : (
                   <Upload size={16} />
                 )}
-                上传运营数据
+                上传周度画像表
               </button>
               <button
                 className="secondary-button"
@@ -2970,7 +3154,7 @@ export default function Home() {
                 上传邮编数据
               </button>
               <button
-                className="primary-button"
+                className="secondary-button"
                 onClick={() => propertyInput.current?.click()}
                 disabled={uploading !== null}
               >
