@@ -2479,6 +2479,146 @@ export default function Home() {
       .filter((row): row is RouteRow => Boolean(row))
       .slice(-4);
   }, [currentWeekIndex, selectedRoute, weeklyRouteMap, weeks]);
+  const selectedRouteTrendOption = useMemo(() => {
+    const averagePph = selectedRouteHistory.length
+      ? sum(selectedRouteHistory.map((item) => item.operationPph)) /
+        selectedRouteHistory.length
+      : 0;
+    return {
+      animationDuration: 520,
+      animationEasing: "cubicOut",
+      color: ["#9fc2ff", "#2563eb"],
+      grid: { top: 44, right: 48, bottom: 32, left: 42 },
+      legend: {
+        top: 4,
+        right: 2,
+        itemWidth: 10,
+        itemHeight: 7,
+        textStyle: { color: "#64748b", fontSize: 8 },
+        data: ["单量", "作业PPH"],
+      },
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: "rgba(7, 26, 58, 0.94)",
+        borderWidth: 0,
+        padding: [8, 10],
+        textStyle: { color: "#fff", fontSize: 9 },
+        axisPointer: {
+          type: "line",
+          lineStyle: { color: "#9eb0c9", width: 1, type: "dashed" },
+        },
+        formatter: (
+          params: Array<{
+            axisValue: string;
+            marker: string;
+            seriesName: string;
+            value: number;
+          }>,
+        ) => {
+          if (!params.length) return "";
+          return [
+            `<strong>${params[0].axisValue}</strong>`,
+            ...params.map(
+              (item) =>
+                `${item.marker}${item.seriesName}：<strong>${
+                  item.seriesName === "作业PPH"
+                    ? formatNumber(item.value, 2)
+                    : `${formatNumber(item.value)} 单`
+                }</strong>`,
+            ),
+          ].join("<br/>");
+        },
+      },
+      xAxis: {
+        type: "category",
+        data: selectedRouteHistory.map((item) => item.week),
+        axisTick: { show: false },
+        axisLine: { lineStyle: { color: "#dbe4f0" } },
+        axisLabel: { color: "#64748b", fontSize: 8, margin: 10 },
+      },
+      yAxis: [
+        {
+          type: "value",
+          name: "PPH",
+          interval: 0.5,
+          min: ({ min }: { min: number }) =>
+            Math.max(0, Math.floor((min - 0.5) * 2) / 2),
+          max: ({ max }: { max: number }) =>
+            Math.ceil((max + 0.5) * 2) / 2,
+          nameTextStyle: { color: "#94a3b8", fontSize: 8 },
+          splitLine: { lineStyle: { color: "#edf1f6", type: "dashed" } },
+          axisLabel: { color: "#94a3b8", fontSize: 8 },
+        },
+        {
+          type: "value",
+          name: "单量",
+          nameTextStyle: { color: "#94a3b8", fontSize: 8 },
+          splitLine: { show: false },
+          axisLabel: {
+            color: "#94a3b8",
+            fontSize: 8,
+            formatter: (value: number) => formatNumber(value),
+          },
+        },
+      ],
+      series: [
+        {
+          name: "单量",
+          type: "bar",
+          yAxisIndex: 1,
+          data: selectedRouteHistory.map((item) => item.attempted),
+          barMaxWidth: 24,
+          itemStyle: {
+            color: "rgba(102, 159, 255, 0.4)",
+            borderColor: "rgba(72, 132, 238, 0.32)",
+            borderWidth: 1,
+            borderRadius: [4, 4, 0, 0],
+          },
+          emphasis: { itemStyle: { color: "rgba(79, 143, 255, 0.65)" } },
+        },
+        {
+          name: "作业PPH",
+          type: "line",
+          data: selectedRouteHistory.map((item) =>
+            Number(item.operationPph.toFixed(2)),
+          ),
+          smooth: 0.28,
+          symbol: "circle",
+          symbolSize: 7,
+          lineStyle: { width: 2.5, color: "#2563eb" },
+          itemStyle: { color: "#fff", borderColor: "#2563eb", borderWidth: 2.5 },
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(37, 99, 235, 0.14)" },
+                { offset: 1, color: "rgba(37, 99, 235, 0.01)" },
+              ],
+            },
+          },
+          markLine: averagePph
+            ? {
+                silent: true,
+                symbol: "none",
+                label: {
+                  formatter: `均值 ${formatNumber(averagePph, 2)}`,
+                  color: "#64748b",
+                  fontSize: 7,
+                  position: "insideEndTop",
+                },
+                lineStyle: { color: "#94a3b8", type: "dashed", width: 1 },
+                data: [{ yAxis: Number(averagePph.toFixed(2)) }],
+              }
+            : undefined,
+          z: 3,
+        },
+      ],
+    };
+  }, [selectedRouteHistory]);
   const selectedRouteChangeSummary = useMemo(() => {
     if (!selectedRoute || selectedRouteHistory.length < 2) return null;
     const contextId = selectedRouteContext?.id ?? "";
@@ -4608,6 +4748,39 @@ export default function Home() {
                   <p className="missing-copy">
                     当前路区没有可关联的邮编数据。
                   </p>
+                )}
+              </section>
+
+              <section className="drawer-route-trend" aria-label="路区四周PPH与单量趋势">
+                <div className="drawer-route-trend-head">
+                  <div>
+                    <span>
+                      <Activity size={12} /> 4-WEEK PERFORMANCE
+                    </span>
+                    <strong>四周PPH与单量趋势</strong>
+                    <small>折线为作业PPH，柱状为配送单量</small>
+                  </div>
+                  <div>
+                    <span>本周</span>
+                    <strong>{formatNumber(selectedRoute.operationPph, 2)}</strong>
+                    <small>PPH</small>
+                  </div>
+                </div>
+                {selectedRouteHistory.length ? (
+                  <div
+                    className="drawer-route-trend-chart"
+                    role="img"
+                    aria-label={`${selectedRoute.route}最近${selectedRouteHistory.length}周作业PPH与配送单量趋势图`}
+                  >
+                    <ReactECharts
+                      option={selectedRouteTrendOption}
+                      notMerge
+                      lazyUpdate
+                      style={{ height: 210, width: "100%" }}
+                    />
+                  </div>
+                ) : (
+                  <p className="missing-copy">当前路区暂无趋势数据。</p>
                 )}
               </section>
 
