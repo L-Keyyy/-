@@ -1453,10 +1453,57 @@ button:disabled {
 }
 
 .watch-card-summary:focus-visible,
+.watch-card-week-select:focus-within,
 .watch-card-download:focus-visible,
 .watch-card-toggle:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: -2px;
+}
+
+.watch-card-week-select {
+  position: relative;
+  display: inline-flex;
+  height: 29px;
+  flex: 0 0 auto;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--slate-200);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--slate-500);
+}
+
+.watch-card-week-select > span {
+  padding-left: 8px;
+  font-size: 7px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.watch-card-week-select select {
+  height: 100%;
+  min-width: 48px;
+  appearance: none;
+  border: 0;
+  outline: 0;
+  padding: 0 20px 0 5px;
+  background: transparent;
+  color: var(--navy);
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.watch-card-week-select > svg {
+  position: absolute;
+  right: 6px;
+  pointer-events: none;
+}
+
+.watch-card-week-select:hover {
+  border-color: #a9c5fa;
+  background: var(--blue-soft);
 }
 
 .watch-card-download {

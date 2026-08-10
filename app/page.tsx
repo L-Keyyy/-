@@ -3763,6 +3763,25 @@ export default function Home() {
                           />
                         ) : null}
                       </button>
+                      {list.id === "volume-up-pph-flat" ? (
+                        <label className="watch-card-week-select">
+                          <span>周次</span>
+                          <select
+                            aria-label="选择妥投量观察周次"
+                            value={selectedWeek}
+                            onChange={(event) =>
+                              setSelectedWeek(event.target.value)
+                            }
+                          >
+                            {weeks.map((week) => (
+                              <option key={week} value={week}>
+                                {week}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown size={12} aria-hidden="true" />
+                        </label>
+                      ) : null}
                       <button
                         type="button"
                         className="watch-card-download"
