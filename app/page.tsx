@@ -4588,6 +4588,38 @@ export default function Home() {
             onClick={closeRouteDetails}
             aria-label="关闭路区详情"
           />
+          <section className="route-trend-flyout" aria-label="路区四周PPH与单量趋势">
+            <div className="drawer-route-trend-head">
+              <div>
+                <span>
+                  <Activity size={12} /> 4-WEEK PERFORMANCE
+                </span>
+                <strong>{selectedRoute.route} · 四周PPH与单量趋势</strong>
+                <small>折线为作业PPH，柱状为配送单量</small>
+              </div>
+              <div>
+                <span>本周</span>
+                <strong>{formatNumber(selectedRoute.operationPph, 2)}</strong>
+                <small>PPH</small>
+              </div>
+            </div>
+            {selectedRouteHistory.length ? (
+              <div
+                className="drawer-route-trend-chart"
+                role="img"
+                aria-label={`${selectedRoute.route}最近${selectedRouteHistory.length}周作业PPH与配送单量趋势图`}
+              >
+                <ReactECharts
+                  option={selectedRouteTrendOption}
+                  notMerge
+                  lazyUpdate
+                  style={{ height: 300, width: "100%" }}
+                />
+              </div>
+            ) : (
+              <p className="missing-copy">当前路区暂无趋势数据。</p>
+            )}
+          </section>
           <aside className="route-drawer" aria-label="路区详情">
             <div className="drawer-head route-drawer-head">
               <div className="route-head-identity">
@@ -4748,39 +4780,6 @@ export default function Home() {
                   <p className="missing-copy">
                     当前路区没有可关联的邮编数据。
                   </p>
-                )}
-              </section>
-
-              <section className="drawer-route-trend" aria-label="路区四周PPH与单量趋势">
-                <div className="drawer-route-trend-head">
-                  <div>
-                    <span>
-                      <Activity size={12} /> 4-WEEK PERFORMANCE
-                    </span>
-                    <strong>四周PPH与单量趋势</strong>
-                    <small>折线为作业PPH，柱状为配送单量</small>
-                  </div>
-                  <div>
-                    <span>本周</span>
-                    <strong>{formatNumber(selectedRoute.operationPph, 2)}</strong>
-                    <small>PPH</small>
-                  </div>
-                </div>
-                {selectedRouteHistory.length ? (
-                  <div
-                    className="drawer-route-trend-chart"
-                    role="img"
-                    aria-label={`${selectedRoute.route}最近${selectedRouteHistory.length}周作业PPH与配送单量趋势图`}
-                  >
-                    <ReactECharts
-                      option={selectedRouteTrendOption}
-                      notMerge
-                      lazyUpdate
-                      style={{ height: 210, width: "100%" }}
-                    />
-                  </div>
-                ) : (
-                  <p className="missing-copy">当前路区暂无趋势数据。</p>
                 )}
               </section>
 

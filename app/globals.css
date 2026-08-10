@@ -2588,12 +2588,26 @@ td .average-value-tag,
   white-space: nowrap;
 }
 
-.drawer-route-trend {
-  margin-bottom: 14px;
-  padding: 12px 12px 4px;
+.route-trend-flyout {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: calc(min(440px, 94vw) + 16px);
+  width: min(620px, calc(100vw - 472px));
+  padding: 18px 18px 7px;
   border: 1px solid #d8e4f6;
-  border-radius: 10px;
+  border-radius: 14px;
   background: linear-gradient(145deg, #fff, #f8fbff);
+  box-shadow: 0 24px 70px rgba(7, 26, 58, 0.2);
+  transform: translateY(-50%);
+  animation: trend-flyout-in 220ms ease-out;
+}
+
+@keyframes trend-flyout-in {
+  from {
+    opacity: 0;
+    transform: translate(18px, -50%);
+  }
 }
 
 .drawer-route-trend-head {
@@ -2660,7 +2674,7 @@ td .average-value-tag,
 
 .drawer-route-trend-chart {
   min-width: 0;
-  margin: 1px -4px 0;
+  margin: 2px -5px 0;
 }
 
 .drawer-metrics {
@@ -3156,6 +3170,12 @@ td .average-value-tag,
     border-left: 0;
   }
 
+}
+
+@media (max-width: 760px) {
+  .route-trend-flyout {
+    display: none;
+  }
 }
 
 @media (max-width: 600px) {
