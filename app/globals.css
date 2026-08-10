@@ -2669,6 +2669,10 @@ td .average-value-tag,
   gap: 7px;
 }
 
+.route-drawer-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .drawer-metrics > div {
   display: flex;
   min-width: 0;

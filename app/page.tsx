@@ -4784,26 +4784,16 @@ export default function Home() {
                 )}
               </section>
 
-              <div className="drawer-metrics">
+              <div className="drawer-metrics route-drawer-metrics">
                 <div>
-                  <span>作业PPH</span>
+                  <span>PPH值</span>
                   <strong>{formatNumber(selectedRoute.operationPph, 2)}</strong>
                   <small>{selectedRoute.percentile}</small>
                 </div>
                 <div>
-                  <span>成功PPH</span>
-                  <strong>{formatNumber(selectedRoute.successPph, 2)}</strong>
-                  <small>{formatNumber(selectedRoute.delivered)} 单</small>
-                </div>
-                <div>
-                  <span>失败率</span>
-                  <strong>{formatPercent(selectedRoute.failRate)}</strong>
-                  <small>
-                    {formatNumber(
-                      selectedRoute.attempted - selectedRoute.delivered,
-                    )}{" "}
-                    单
-                  </small>
+                  <span>单量</span>
+                  <strong>{formatNumber(selectedRoute.attempted)} 单</strong>
+                  <small>配送总量</small>
                 </div>
               </div>
 
