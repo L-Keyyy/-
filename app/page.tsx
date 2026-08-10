@@ -3688,11 +3688,11 @@ export default function Home() {
                   tone: "orange",
                   rows: priorityLists.volumeUpPphFlat,
                   value: (row: RouteRow) =>
-                    `+${formatNumber(
+                    `+${formatPercent(
                       priorityLists.volumeUpPphFlatMap.get(row.route)
-                        ?.volumeIncrease ?? 0,
-                    )} 单`,
-                  caption: "较上周增加 · PPH涨幅≤1%",
+                        ?.volumeChange ?? 0,
+                    )}`,
+                  caption: "较上周单量涨幅 · PPH涨幅≤1%",
                 },
               ].map((list) => {
                 const Icon = list.icon;
