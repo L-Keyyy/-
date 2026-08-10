@@ -180,11 +180,6 @@ export function cleanPerformanceRecords(records: PerformanceRecord[]) {
       reasonCounts.emptyWork += 1;
       return false;
     }
-    if (row.delivered < 100) {
-      reasonCounts.lowVolume += 1;
-      return false;
-    }
-
     const componentHours =
       row.sortHours + row.transitHours + row.deliveryHours;
     if (

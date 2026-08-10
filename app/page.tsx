@@ -1873,7 +1873,7 @@ export default function Home() {
             generatedAt: new Date().toISOString(),
           });
           setNotice(
-            `运营明细已更新：保留 ${formatNumber(cleaned.records.length)} 条，补齐 ${formatNumber(retainedEstimates)} 条均值在途时长，自动剔除 ${formatNumber(cleaned.excluded)} 条未达门槛、异常或空载记录。`,
+            `运营明细已更新：保留 ${formatNumber(cleaned.records.length)} 条，补齐 ${formatNumber(retainedEstimates)} 条均值在途时长，自动剔除 ${formatNumber(cleaned.excluded)} 条异常或空载记录。`,
           );
         }
       } else if (type === "postal") {
@@ -1912,7 +1912,7 @@ export default function Home() {
               },
         );
         setNotice(
-          `邮编数据已更新：保留 ${formatNumber(cleanedPostal.records.length)} 条，补齐 ${formatNumber(retainedEstimates)} 条均值在途时长，自动剔除 ${formatNumber(cleanedPostal.excluded)} 条未达门槛或异常记录。`,
+          `邮编数据已更新：保留 ${formatNumber(cleanedPostal.records.length)} 条，补齐 ${formatNumber(retainedEstimates)} 条均值在途时长，自动剔除 ${formatNumber(cleanedPostal.excluded)} 条异常或空载记录。`,
         );
       } else {
         const nextProperties = normalizePropertyRows(rows);
@@ -3261,8 +3261,8 @@ export default function Home() {
                 <strong>数据工作区</strong>
                 <span>
                   周度路区画像表可直接上传，自动更新下一周及邮编数据 ·
-                  按“路区名称”自动关联 · 仅保留配送量≥100 · 已剔除{" "}
-                  {formatNumber(excludedCount)} 条未达门槛、异常或空载记录 ·
+                  按“路区名称”自动关联 · 保留全部有效正单量记录 · 已剔除{" "}
+                  {formatNumber(excludedCount)} 条异常或空载记录 ·
                   在途为0按同站点/大区同周单均时长均值补齐：路区{" "}
                   {formatNumber(estimatedTransitCount)} 条、邮编{" "}
                   {formatNumber(estimatedPostalTransitCount)} 条 · 邮编维度已加载{" "}
@@ -4190,7 +4190,7 @@ export default function Home() {
                 ) : null}
               </label>
               <span>
-                仅保留配送量≥100 · 已清洗 {formatNumber(excludedPostalCount)} 条 ·{" "}
+                保留全部有效正单量记录 · 已清洗 {formatNumber(excludedPostalCount)} 条 ·{" "}
                 {formatNumber(estimatedPostalTransitCount)} 条在途时长按均值补齐
               </span>
             </div>
