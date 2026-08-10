@@ -1496,7 +1496,9 @@ export default function Home() {
           });
           const risesEveryWeek = values.every(
             (value, index) =>
-              value > 0 && (index === 0 || value > values[index - 1]),
+              value > 0 &&
+              (index === 0 ||
+                (value - values[index - 1]) / values[index - 1] >= 0.001),
           );
           if (risesEveryWeek) {
             changeMap.set(
@@ -1646,7 +1648,9 @@ export default function Home() {
           );
           const risesEveryWeek = values.every(
             (value, index) =>
-              value > 0 && (index === 0 || value > values[index - 1]),
+              value > 0 &&
+              (index === 0 ||
+                (value - values[index - 1]) / values[index - 1] >= 0.001),
           );
           if (risesEveryWeek) {
             changeMap.set(
@@ -1771,6 +1775,38 @@ export default function Home() {
           const cleanedPostal = cleanPostalPerformanceRecords(
             normalized.postalRecords,
           );
+          const latestRecords = records.filter(
+            (row) => row.week === latestWeek,
+          );
+          const latestMetrics = aggregatePerformance(latestRecords);
+          const uploadedMetrics = aggregatePerformance(cleaned.records);
+          const relativeDifference = (left: number, right: number) =>
+            Math.abs(left - right) / Math.max(1, Math.abs(right));
+          const duplicatesLatestWeek =
+            !fileWeek &&
+            cleaned.records.length === latestRecords.length &&
+            relativeDifference(
+              uploadedMetrics.attempted,
+              latestMetrics.attempted,
+            ) < 0.001 &&
+            relativeDifference(
+              uploadedMetrics.delivered,
+              latestMetrics.delivered,
+            ) < 0.001 &&
+            relativeDifference(
+              uploadedMetrics.totalHours,
+              latestMetrics.totalHours,
+            ) < 0.001 &&
+            relativeDifference(
+              uploadedMetrics.operationPph,
+              latestMetrics.operationPph,
+            ) < 0.001;
+          if (duplicatesLatestWeek) {
+            setNotice(
+              `检测到本次画像表与 ${latestWeek} 的单量、工时和PPH基本一致，已拦截重复周次；请确认源表已刷新后再上传。`,
+            );
+            return;
+          }
           const combinedRecords = [
             ...records.filter((row) => row.week !== targetWeek),
             ...cleaned.records,
