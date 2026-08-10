@@ -778,8 +778,27 @@ export default function Home() {
   );
   const routeOptions = useMemo(
     () =>
-      [...new Set(regionRecords.map((row) => row.route).filter(Boolean))].sort(),
-    [regionRecords],
+      [
+        ...new Set(
+          regionRecords
+            .filter((row) => {
+              const siteQuery = siteFilter.trim().toLowerCase();
+              const dspQuery = dspFilter.trim().toLowerCase();
+              if (selectedWeek && row.week !== selectedWeek) return false;
+              if (
+                siteQuery &&
+                !row.site.toLowerCase().includes(siteQuery)
+              )
+                return false;
+              if (dspQuery && !row.dsp.toLowerCase().includes(dspQuery))
+                return false;
+              return true;
+            })
+            .map((row) => row.route)
+            .filter(Boolean),
+        ),
+      ].sort(),
+    [dspFilter, regionRecords, selectedWeek, siteFilter],
   );
   const postalCodeOptions = useMemo(() => {
     const siteQuery = siteFilter.trim().toLowerCase();
@@ -3379,7 +3398,11 @@ export default function Home() {
                 <input
                   list="site-filter-options"
                   value={siteFilter}
-                  onChange={(event) => setSiteFilter(event.target.value)}
+                  onChange={(event) => {
+                    setSiteFilter(event.target.value);
+                    setRouteFilter("");
+                    setPostalFilter("");
+                  }}
                   placeholder="输入站点名称"
                   aria-label="手动输入站点名称"
                 />
