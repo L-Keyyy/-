@@ -40,6 +40,16 @@ export function failRate(delivered: number, attempted: number) {
   return attempted > 0 ? Math.max(0, attempted - delivered) / attempted : 0;
 }
 
+function hasImplausibleDeliveryVolume(
+  delivered: number,
+  attempted: number,
+) {
+  // Weekly received and delivered volumes can differ slightly because backlog
+  // from the previous period may be completed in the current week. Only reject
+  // gaps that are too large to be explained by this normal cross-week carryover.
+  return delivered > Math.max(attempted * 1.25, attempted + 100);
+}
+
 type TransitRecord = {
   week: string;
   region: string;
@@ -73,7 +83,7 @@ export function imputeTransitHours<T extends TransitRecord>(records: T[]) {
       row.transitHours <= 0 ||
       row.attempted <= 0 ||
       row.delivered < 100 ||
-      row.delivered > row.attempted ||
+      hasImplausibleDeliveryVolume(row.delivered, row.attempted) ||
       row.totalHours <= 0
     )
       return;
@@ -162,7 +172,7 @@ export function cleanPerformanceRecords(records: PerformanceRecord[]) {
       reasonCounts.negativeValue += 1;
       return false;
     }
-    if (row.delivered > row.attempted) {
+    if (hasImplausibleDeliveryVolume(row.delivered, row.attempted)) {
       reasonCounts.invalidVolume += 1;
       return false;
     }
