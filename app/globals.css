@@ -3614,3 +3614,353 @@ td .average-value-tag,
   }
 
 }
+
+/* Keep the monthly product visually identical to the weekly dashboard. */
+.weekly-style-monthly .monthly-sidebar {
+  width: 242px;
+  padding: 0;
+}
+
+.weekly-style-monthly .monthly-sidebar nav {
+  display: block;
+  padding: 0 11px 18px;
+  border-top: 0;
+}
+
+.weekly-style-monthly .monthly-sidebar nav button {
+  border: 0;
+}
+
+.weekly-style-monthly .monthly-main {
+  margin-left: 242px;
+}
+
+.weekly-style-monthly .monthly-topbar {
+  min-height: 78px;
+  padding: 12px 28px;
+}
+
+.weekly-style-monthly .monthly-topbar span {
+  letter-spacing: normal;
+}
+
+.weekly-style-monthly .monthly-topbar .secondary-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--slate-200);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+  color: var(--slate-800);
+  font-size: 10px;
+}
+
+.weekly-style-monthly .monthly-data-toolbar {
+  margin-top: 0;
+}
+
+.weekly-style-monthly .monthly-data-toolbar a {
+  text-decoration: none;
+}
+
+.weekly-style-monthly .monthly-filters {
+  grid-template-columns: 54px repeat(6, minmax(105px, 1fr));
+  margin: 12px 0 0;
+  padding: 11px 13px;
+  border-radius: 12px;
+}
+
+.weekly-style-monthly .monthly-filters label > div {
+  position: relative;
+}
+
+.weekly-style-monthly .monthly-filters select {
+  height: 34px;
+  min-height: 34px;
+  border-radius: 7px;
+  background: #fbfcfe;
+  font-size: 10px;
+}
+
+.weekly-style-monthly .monthly-hero {
+  margin: 16px 0 0;
+  padding: 18px 22px;
+  border-radius: 13px;
+}
+
+.weekly-style-monthly .monthly-panel {
+  margin: 14px 0;
+  padding: 17px;
+  border-radius: 12px;
+  box-shadow: 0 5px 18px rgba(26, 48, 85, 0.035);
+}
+
+.weekly-style-monthly .monthly-grid-two {
+  gap: 14px;
+  margin: 14px 0;
+}
+
+.weekly-style-monthly .monthly-grid-two .monthly-panel {
+  margin: 0;
+}
+
+.weekly-style-monthly .monthly-footer {
+  margin: 0;
+}
+
+.salary-summary-cards {
+  display: flex;
+  gap: 8px;
+}
+
+.salary-summary-cards > div {
+  display: flex;
+  min-width: 118px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--slate-200);
+  border-radius: 8px;
+  background: var(--slate-100);
+}
+
+.salary-summary-cards span {
+  color: var(--slate-500);
+  font-size: 8px;
+}
+
+.salary-summary-cards strong {
+  color: var(--slate-950);
+  font-size: 12px;
+}
+
+.salary-compare-table {
+  min-width: 1280px;
+}
+
+.monthly-pill.attention {
+  background: #fff4e9;
+  color: #c96c1d;
+}
+
+.monthly-pill.risk {
+  background: #fff0f1;
+  color: #c84452;
+}
+
+.monthly-calculator-layout {
+  display: grid;
+  grid-template-columns: minmax(310px, .75fr) minmax(540px, 1.25fr);
+  gap: 12px;
+}
+
+.calculator-controls-card,
+.calculator-results-card {
+  border: 1px solid var(--slate-200);
+  border-radius: 11px;
+  background: #fbfcfe;
+}
+
+.calculator-controls-card {
+  padding: 14px;
+}
+
+.calculator-controls-card > label,
+.calculator-input-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.calculator-controls-card label > span {
+  color: var(--slate-600);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.calculator-controls-card select {
+  width: 100%;
+  height: 36px;
+  appearance: none;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--slate-200);
+  border-radius: 7px;
+  outline: 0;
+  background: #fff;
+  color: var(--slate-800);
+  font-size: 10px;
+}
+
+.calculator-controls-card .select-wrap svg {
+  top: 11px;
+}
+
+.calculator-input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.money-input {
+  display: flex;
+  height: 42px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border: 1px solid var(--slate-200);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.money-input b,
+.money-input em {
+  color: var(--slate-500);
+  font-size: 10px;
+  font-style: normal;
+}
+
+.money-input input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: var(--navy);
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.calculator-input-grid small {
+  color: var(--slate-400);
+  font-size: 8px;
+}
+
+.calculator-quick-targets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--slate-500);
+  font-size: 8px;
+}
+
+.calculator-quick-targets button {
+  padding: 5px 8px;
+  border: 1px solid #cbdcf8;
+  border-radius: 6px;
+  background: #edf4ff;
+  color: #2f67bd;
+  font-size: 8px;
+}
+
+.calculator-route-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 12px;
+}
+
+.calculator-route-meta span {
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #eef2f7;
+  color: var(--slate-600);
+  font-size: 8px;
+}
+
+.calculator-results-card {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+}
+
+.calculator-results-card > div {
+  display: flex;
+  min-height: 90px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 12px 14px;
+  border-right: 1px solid var(--slate-200);
+  border-bottom: 1px solid var(--slate-200);
+}
+
+.calculator-results-card > div:nth-child(3n) {
+  border-right: 0;
+}
+
+.calculator-results-card > div:nth-last-child(-n + 3) {
+  border-bottom: 0;
+}
+
+.calculator-results-card span,
+.calculator-results-card small {
+  color: var(--slate-500);
+  font-size: 8px;
+}
+
+.calculator-results-card strong {
+  color: var(--navy);
+  font-size: 16px;
+}
+
+.calculator-formula-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 11px 0;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #edf4ff;
+  color: #45678f;
+  font-size: 9px;
+}
+
+.calculator-weight-table {
+  max-height: 340px;
+}
+
+.calculator-empty {
+  height: 72px;
+  color: var(--slate-400) !important;
+  text-align: center;
+}
+
+@media (max-width: 1180px) {
+  .monthly-calculator-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .salary-summary-cards {
+    width: 100%;
+  }
+
+  .weekly-style-monthly .monthly-filters {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .weekly-style-monthly .monthly-sidebar {
+    display: none;
+  }
+
+  .weekly-style-monthly .monthly-main {
+    margin-left: 0;
+  }
+
+  .calculator-input-grid,
+  .calculator-results-card {
+    grid-template-columns: 1fr;
+  }
+
+  .calculator-results-card > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--slate-200) !important;
+  }
+
+  .calculator-results-card > div:last-child {
+    border-bottom: 0 !important;
+  }
+}

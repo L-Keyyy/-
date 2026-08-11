@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   ArrowUpRight,
   CalendarRange,
+  CircleDollarSign,
+  Calculator,
   ChevronDown,
   Download,
   FileSpreadsheet,
@@ -39,6 +41,18 @@ import type {
 } from "../types";
 
 type EntityMode = "route" | "postal";
+
+type PostalWeightCost = {
+  postalCode: string;
+  route: string;
+  site: string;
+  region: string;
+  weightBand: string;
+  priceType: string;
+  shipmentVolume: number;
+  bookedCost: number;
+  averageDspCost: number;
+};
 
 type MonthlyRow = {
   key: string;
@@ -152,6 +166,7 @@ export default function MonthlyDashboard() {
   const [records, setRecords] = useState<PerformanceRecord[]>([]);
   const [postalRecords, setPostalRecords] = useState<PostalPerformanceRecord[]>([]);
   const [properties, setProperties] = useState<RouteProperty[]>([]);
+  const [postalWeightCosts, setPostalWeightCosts] = useState<PostalWeightCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState("");
   const [regionFilter, setRegionFilter] = useState("全部大区");
@@ -161,14 +176,25 @@ export default function MonthlyDashboard() {
   const [businessFilter, setBusinessFilter] = useState("全部模式");
   const [search, setSearch] = useState("");
   const [entityMode, setEntityMode] = useState<EntityMode>("route");
+  const [calculatorRoute, setCalculatorRoute] = useState("");
+  const [targetHourlyWage, setTargetHourlyWage] = useState("35");
+  const [calculatorPph, setCalculatorPph] = useState("");
 
   useEffect(() => {
-    Promise.all([fetch("/data/initial.json"), fetch("/data/postal-records.json")])
-      .then(async ([initialResponse, postalResponse]) => {
-        if (!initialResponse.ok || !postalResponse.ok) throw new Error("data");
+    Promise.all([
+      fetch("/data/initial.json"),
+      fetch("/data/postal-records.json"),
+      fetch("/data/postal-weight-costs.json"),
+    ])
+      .then(async ([initialResponse, postalResponse, weightResponse]) => {
+        if (!initialResponse.ok || !postalResponse.ok || !weightResponse.ok)
+          throw new Error("data");
         const initial = (await initialResponse.json()) as InitialData;
         const postal = (await postalResponse.json()) as {
           postalRecords: PostalPerformanceRecord[];
+        };
+        const weightData = (await weightResponse.json()) as {
+          postalWeightCosts: PostalWeightCost[];
         };
         const routeFilled = imputeTransitHours(initial.records);
         const postalFilled = imputeTransitHours(postal.postalRecords);
@@ -177,6 +203,7 @@ export default function MonthlyDashboard() {
         setRecords(cleanedRoutes.records);
         setPostalRecords(cleanedPostal.records);
         setProperties(initial.properties);
+        setPostalWeightCosts(weightData.postalWeightCosts);
         const availableMonths = [
           ...new Set(cleanedRoutes.records.map((row) => monthKey(row.weekStart))),
         ].sort();
@@ -322,6 +349,79 @@ export default function MonthlyDashboard() {
     [properties],
   );
 
+  const salaryRows = useMemo(
+    () =>
+      routeRows
+        .filter(
+          (row) =>
+            (row.property?.routeHourlyWage ?? 0) > 0 ||
+            (row.property?.amazonHourlyMedian ?? 0) > 0,
+        )
+        .sort((left, right) => salaryGap(left.property) - salaryGap(right.property)),
+    [routeRows],
+  );
+  const salaryAverage = salaryRows.length
+    ? sum(salaryRows.map((row) => row.property?.routeHourlyWage ?? 0)) /
+      salaryRows.length
+    : 0;
+  const competitorAverage = salaryRows.length
+    ? sum(salaryRows.map((row) => row.property?.amazonHourlyMedian ?? 0)) /
+      salaryRows.length
+    : 0;
+  const calculatorRow =
+    routeRows.find((row) => row.route === calculatorRoute) ??
+    salaryRows[0] ??
+    routeRows[0];
+  const calculatorProperty = calculatorRow?.property;
+  const calculatorBasisPph =
+    Number(calculatorPph) > 0
+      ? Number(calculatorPph)
+      : calculatorProperty?.expertPph || calculatorRow?.monthPph || 0;
+  const targetHourlyValue = Number(targetHourlyWage) || 0;
+  const targetUnitPrice =
+    calculatorBasisPph > 0 && targetHourlyValue > 0
+      ? targetHourlyValue / calculatorBasisPph
+      : 0;
+  const currentUnitPrice = calculatorProperty?.routeUnitPrice ?? 0;
+  const currentCalculatedWage = currentUnitPrice * calculatorBasisPph;
+  const unitPriceAdjustment =
+    currentUnitPrice > 0 && targetUnitPrice > 0
+      ? targetUnitPrice / currentUnitPrice - 1
+      : null;
+  const calculatorWeightRows = useMemo(() => {
+    if (!calculatorRow) return [];
+    const groups = new Map<
+      string,
+      { volume: number; cost: number; priceTypes: Set<string> }
+    >();
+    postalWeightCosts
+      .filter(
+        (row) =>
+          row.route === calculatorRow.route &&
+          (!calculatorRow.site || row.site === calculatorRow.site),
+      )
+      .forEach((row) => {
+        const current = groups.get(row.weightBand) ?? {
+          volume: 0,
+          cost: 0,
+          priceTypes: new Set<string>(),
+        };
+        current.volume += row.shipmentVolume;
+        current.cost += row.bookedCost;
+        current.priceTypes.add(row.priceType);
+        groups.set(row.weightBand, current);
+      });
+    return [...groups.entries()]
+      .map(([weightBand, item]) => ({
+        weightBand,
+        volume: item.volume,
+        unitCost: item.volume > 0 ? item.cost / item.volume : 0,
+        priceTypes: [...item.priceTypes].join(" / "),
+      }))
+      .sort((left, right) => right.volume - left.volume)
+      .slice(0, 8);
+  }, [calculatorRow, postalWeightCosts]);
+
   const exportMonthly = () => {
     const data = routeRows.map((row) => ({
       路区: row.route,
@@ -359,35 +459,60 @@ export default function MonthlyDashboard() {
     );
   }
 
+  const goToSection = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
   return (
-    <div className="monthly-shell">
-      <aside className="monthly-sidebar">
-        <a className="monthly-brand" href="/monthly">
-          <span>M</span>
-          <div><strong>PPH月报</strong><small>综合经营分析</small></div>
-        </a>
-        <nav>
-          <a href="#overview"><Gauge size={17} />月度概况</a>
-          <a href="#trend"><TrendingUp size={17} />连续周变化</a>
-          <a href="#p75"><Route size={17} />P75路区</a>
-          <a href="#pressure"><Layers3 size={17} />量增效平</a>
-          <a href="#properties"><WalletCards size={17} />薪资与画像</a>
+    <div className="app-shell monthly-shell weekly-style-monthly">
+      <aside className="sidebar monthly-sidebar">
+        <div className="brand">
+          <div className="brand-mark">P</div>
+          <div><strong>PPH月报</strong><span>运营效能系统</span></div>
+        </div>
+        <div className="nav-label">功能导航</div>
+        <nav className="main-nav" aria-label="月报导航">
+          <button onClick={() => goToSection("overview")}><Gauge size={17} /><span>月度概况</span></button>
+          <button onClick={() => goToSection("trend")}><TrendingUp size={17} /><span>连续周变化</span></button>
+          <button onClick={() => goToSection("p75")}><Route size={17} /><span>P75路区</span></button>
+          <button onClick={() => goToSection("pressure")}><Layers3 size={17} /><span>量增效平</span></button>
+          <button onClick={() => goToSection("salary-compare")}><CircleDollarSign size={17} /><span>竞对薪资</span></button>
+          <button onClick={() => goToSection("salary-calculator")}><Calculator size={17} /><span>薪资计算器</span></button>
+          <button onClick={() => goToSection("properties")}><WalletCards size={17} /><span>薪资与画像</span></button>
+          <button onClick={() => { window.location.href = "/"; }}><ArrowLeft size={17} /><span>返回周报系统</span></button>
         </nav>
-        <a className="monthly-back" href="/"><ArrowLeft size={16} />返回周报系统</a>
+        <div className="sidebar-source">
+          <div className="source-status"><span className="status-dot" />月报数据已就绪</div>
+          <strong>{formatNumber(records.length)} 条运营记录</strong>
+          <span>{formatNumber(properties.length)} 条路区属性 · {months.length} 个月份</span>
+        </div>
       </aside>
 
-      <main className="monthly-main">
-        <header className="monthly-topbar">
-          <div>
-            <span>MONTHLY PERFORMANCE REVIEW</span>
-            <h1>PPH月报系统</h1>
-            <p>连续周效率、P75标杆、量效承压与薪资难易度统一分析</p>
+      <main className="main-content monthly-main">
+        <header className="topbar monthly-topbar">
+          <div className="topbar-left">
+            <div>
+              <div className="breadcrumb">PPH月报系统 <span>月度综合经营分析</span></div>
+              <h1>PPH月报系统</h1>
+            </div>
           </div>
-          <button onClick={exportMonthly}><Download size={16} />导出月报Excel</button>
+          <div className="topbar-actions">
+            <div className="week-badge"><span>数据周期</span><strong>{monthLabel(selectedMonth)}</strong></div>
+            <button className="secondary-button" onClick={exportMonthly}><Download size={16} />导出月报Excel</button>
+            <div className="avatar">月</div>
+          </div>
         </header>
 
-        <section className="monthly-filters" aria-label="月报筛选">
-          <div className="monthly-filter-title"><SlidersHorizontal size={18} /><strong>筛选</strong></div>
+        <div className="dashboard-content">
+        <section className="data-toolbar monthly-data-toolbar">
+          <div className="toolbar-title">
+            <div className="toolbar-icon"><CalendarRange size={20} /></div>
+            <div><strong>月度数据工作区</strong><span>沿用周报数据口径，自动汇总连续周PPH、P75路区、量效承压、薪资与路区难易度</span></div>
+          </div>
+          <div className="upload-actions"><a className="secondary-button" href="/">返回PPH周报</a></div>
+        </section>
+
+        <section className="filter-bar monthly-filters" aria-label="月报筛选">
+          <div className="filter-lead monthly-filter-title"><SlidersHorizontal size={18} /><strong>筛选</strong></div>
           <label><span>月份</span><div><select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>{months.map((month) => <option key={month} value={month}>{monthLabel(month)}</option>)}</select><ChevronDown size={14} /></div></label>
           <label><span>大区</span><div><select value={regionFilter} onChange={(event) => { setRegionFilter(event.target.value); setSiteFilter(""); setDspFilter(""); }}><option>全部大区</option>{REGION_OPTIONS.map((region) => <option key={region.code} value={region.code}>{region.name}</option>)}</select><ChevronDown size={14} /></div></label>
           <label><span>站点</span><div><select value={siteFilter} onChange={(event) => { setSiteFilter(event.target.value); setDspFilter(""); }}><option value="">全部站点</option>{siteOptions.map((site) => <option key={site}>{site}</option>)}</select><ChevronDown size={14} /></div></label>
@@ -396,7 +521,7 @@ export default function MonthlyDashboard() {
           <label><span>业务模式</span><div><select value={businessFilter} onChange={(event) => setBusinessFilter(event.target.value)}><option>全部模式</option>{businessOptions.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown size={14} /></div></label>
         </section>
 
-        <section id="overview" className="monthly-hero">
+        <section id="overview" className="scope-summary monthly-hero nav-anchor">
           <div>
             <span>CURRENT MONTH</span>
             <h2>{monthLabel(selectedMonth)}</h2>
@@ -425,11 +550,86 @@ export default function MonthlyDashboard() {
           <div id="pressure" className="monthly-panel compact"><div className="monthly-section-head"><div><span>VOLUME UP · PPH FLAT</span><h2>单量上升但PPH未升</h2><p>最近两周妥投量上涨，PPH涨幅≤1%</p></div><span className="monthly-count warning">{volumePressureRows.length}</span></div><div className="monthly-table-wrap"><table className="monthly-table"><thead><tr><th>路区</th><th>单量涨幅</th><th>增加单量</th><th>PPH变化</th><th>难易度</th></tr></thead><tbody>{volumePressureRows.slice(0, 12).map((row) => { const previousVolume = row.weekVolumes.at(-2) ?? 0; const currentVolume = row.weekVolumes.at(-1) ?? 0; const previousPph = row.weekPph.at(-2) ?? 0; const currentPph = row.weekPph.at(-1) ?? 0; const pphChange = previousPph > 0 ? (currentPph - previousPph) / previousPph : 0; return <tr key={row.key}><td><strong>{row.route}</strong><small>{row.site} · {row.dsp}</small></td><td className="monthly-warning">+{formatPercent((currentVolume - previousVolume) / previousVolume)}</td><td>+{formatNumber(currentVolume - previousVolume)}</td><td className={pphChange >= 0 ? "monthly-positive" : "monthly-negative"}>{signedPercent(pphChange)}</td><td>{row.property?.difficulty || "未标注"}</td></tr>; })}</tbody></table></div></div>
         </section>
 
-        <section id="properties" className="monthly-panel">
+        <section id="salary-compare" className="monthly-panel panel nav-anchor salary-compare-panel">
+          <div className="monthly-section-head">
+            <div>
+              <span>SALARY BENCHMARK</span>
+              <h2>路区薪资与竞对薪资</h2>
+              <p>路区时薪与Amazon同城市时薪中位数对比，优先识别薪资竞争力偏低的路区</p>
+            </div>
+            <div className="salary-summary-cards">
+              <div><span>平均路区时薪</span><strong>${formatNumber(salaryAverage, 2)}/h</strong></div>
+              <div><span>竞对平均时薪</span><strong>${formatNumber(competitorAverage, 2)}/h</strong></div>
+              <div><span>低于竞对</span><strong>{formatNumber(salaryRows.filter((row) => salaryGap(row.property) < 0).length)}</strong></div>
+            </div>
+          </div>
+          <div className="monthly-table-wrap">
+            <table className="monthly-table salary-compare-table">
+              <thead><tr><th>路区</th><th>站点 / DSP</th><th>难易度</th><th>月PPH</th><th>路区单价</th><th>路区时薪</th><th>Amazon时薪中位数</th><th>薪资差</th><th>竞争力</th><th>参考城市</th></tr></thead>
+              <tbody>
+                {salaryRows.slice(0, 120).map((row) => {
+                  const gap = salaryGap(row.property);
+                  const ratio = (row.property?.amazonHourlyMedian ?? 0) > 0
+                    ? (row.property?.routeHourlyWage ?? 0) / (row.property?.amazonHourlyMedian ?? 1)
+                    : 0;
+                  return <tr key={row.key}>
+                    <td><strong>{row.route}</strong><small>{row.region}</small></td>
+                    <td><strong>{row.site}</strong><small>{row.dsp}</small></td>
+                    <td><span className="monthly-pill difficulty">{row.property?.difficulty || "未标注"}</span></td>
+                    <td>{formatNumber(row.monthPph, 2)}</td>
+                    <td>{row.property?.routeUnitPrice ? `$${formatNumber(row.property.routeUnitPrice, 2)}/单` : "—"}</td>
+                    <td><strong>${formatNumber(row.property?.routeHourlyWage ?? 0, 2)}/h</strong></td>
+                    <td>${formatNumber(row.property?.amazonHourlyMedian ?? 0, 2)}/h</td>
+                    <td className={gap >= 0 ? "monthly-positive" : "monthly-negative"}>{gap >= 0 ? "+" : ""}${formatNumber(gap, 2)}</td>
+                    <td><span className={`monthly-pill ${ratio >= 1 ? "good" : ratio >= .9 ? "attention" : "risk"}`}>{ratio >= 1 ? "高于竞对" : ratio >= .9 ? "接近竞对" : "低于竞对"}</span></td>
+                    <td className="monthly-wide-cell">{row.property?.salaryCity || "—"}</td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="salary-calculator" className="monthly-panel panel nav-anchor wage-calculator-panel">
+          <div className="monthly-section-head">
+            <div>
+              <span>WAGE CALCULATOR</span>
+              <h2>目标时薪与重量分段单价计算器</h2>
+              <p>选择路区后，以月度PPH或自定义效率测算目标单价，并同步计算各重量段建议价</p>
+            </div>
+            <Calculator size={27} />
+          </div>
+          <div className="monthly-calculator-layout">
+            <div className="calculator-controls-card">
+              <label><span>选择路区</span><div className="select-wrap"><select value={calculatorRow?.route ?? ""} onChange={(event) => { setCalculatorRoute(event.target.value); setCalculatorPph(""); }}><option value="">请选择路区</option>{salaryRows.map((row) => <option key={row.key} value={row.route}>{row.route} · {row.site}</option>)}</select><ChevronDown size={14} /></div></label>
+              <div className="calculator-input-grid">
+                <label><span>效率计算基准</span><div className="money-input"><input type="number" min="0" step="0.01" value={calculatorPph} onChange={(event) => setCalculatorPph(event.target.value)} placeholder={formatNumber(calculatorProperty?.expertPph || calculatorRow?.monthPph || 0, 2)} /><em>PPH</em></div><small>留空时优先使用薪资文件效率基准</small></label>
+                <label><span>目标时薪</span><div className="money-input"><b>$</b><input type="number" min="0" step="0.01" value={targetHourlyWage} onChange={(event) => setTargetHourlyWage(event.target.value)} /><em>/h</em></div><small>可直接输入期望达到的时薪</small></label>
+              </div>
+              <div className="calculator-quick-targets"><span>快速参照：</span><button onClick={() => setTargetHourlyWage(formatNumber(calculatorProperty?.amazonHourlyMedian ?? 0, 2))}>竞对时薪</button><button onClick={() => setTargetHourlyWage(formatNumber(calculatorProperty?.routeHourlyWage ?? 0, 2))}>当前时薪</button><button onClick={() => setTargetHourlyWage("35")}>$35/h</button></div>
+              <div className="calculator-route-meta"><span>{calculatorProperty?.difficulty || "未标注难易度"}</span><span>{calculatorProperty?.businessMode || "未标注模式"}</span><span>{calculatorProperty?.salaryCity || "未标注城市"}</span></div>
+            </div>
+            <div className="calculator-results-card">
+              <div><span>当前文件时薪</span><strong>${formatNumber(calculatorProperty?.routeHourlyWage ?? 0, 2)}/h</strong><small>薪资文件原值</small></div>
+              <div><span>竞对时薪中位数</span><strong>${formatNumber(calculatorProperty?.amazonHourlyMedian ?? 0, 2)}/h</strong><small>Amazon同城市参考</small></div>
+              <div><span>建议综合单价</span><strong>{targetUnitPrice ? `$${formatNumber(targetUnitPrice, 2)}/单` : "—"}</strong><small>目标时薪 ÷ 效率基准</small></div>
+              <div><span>相对当前单价</span><strong className={(unitPriceAdjustment ?? 0) >= 0 ? "monthly-positive" : "monthly-negative"}>{unitPriceAdjustment === null ? "—" : signedPercent(unitPriceAdjustment)}</strong><small>当前单价 ${formatNumber(currentUnitPrice, 2)}/单</small></div>
+              <div><span>当前单价测算时薪</span><strong>${formatNumber(currentCalculatedWage, 2)}/h</strong><small>当前单价 × {formatNumber(calculatorBasisPph, 2)} PPH</small></div>
+              <div><span>目标与竞对差</span><strong className={targetHourlyValue >= (calculatorProperty?.amazonHourlyMedian ?? 0) ? "monthly-positive" : "monthly-negative"}>{targetHourlyValue - (calculatorProperty?.amazonHourlyMedian ?? 0) >= 0 ? "+" : ""}${formatNumber(targetHourlyValue - (calculatorProperty?.amazonHourlyMedian ?? 0), 2)}/h</strong><small>目标时薪－竞对时薪</small></div>
+            </div>
+          </div>
+          <div className="calculator-formula-line"><CircleDollarSign size={15} /><span>建议综合单价 = 目标时薪 ÷ PPH效率基准；重量段建议价 = 当前重量段单价 ×（建议综合单价 ÷ 当前路区单价）。</span></div>
+          <div className="monthly-table-wrap calculator-weight-table">
+            <table className="monthly-table"><thead><tr><th>重量段</th><th>价格类型</th><th>样本单量</th><th>当前件均成本</th><th>建议重量段单价</th><th>调整幅度</th></tr></thead><tbody>{calculatorWeightRows.length ? calculatorWeightRows.map((row) => { const ratio = currentUnitPrice > 0 && targetUnitPrice > 0 ? targetUnitPrice / currentUnitPrice : 0; const suggested = ratio > 0 ? row.unitCost * ratio : 0; return <tr key={row.weightBand}><td><strong>{row.weightBand}</strong></td><td>{row.priceTypes}</td><td>{formatNumber(row.volume)}</td><td>${formatNumber(row.unitCost, 2)}</td><td className="monthly-positive">{suggested ? `$${formatNumber(suggested, 2)}` : "—"}</td><td>{ratio ? signedPercent(ratio - 1) : "—"}</td></tr>; }) : <tr><td colSpan={6} className="calculator-empty">当前路区暂无重量分段成本数据</td></tr>}</tbody></table>
+          </div>
+        </section>
+
+        <section id="properties" className="monthly-panel panel nav-anchor">
           <div className="monthly-section-head"><div><span>SALARY & ROUTE PROFILE</span><h2>薪资、难易度与路区综合画像</h2><p>恢复周报中精简掉的属性字段，用于解释效率差异和制定站点动作</p></div><FileSpreadsheet size={28} /></div>
           <div className="monthly-table-wrap"><table className="monthly-table monthly-profile-table"><thead><tr><th>路区</th><th>难易度</th><th>业务模式</th><th>路区单价</th><th>路区时薪</th><th>Amazon时薪中位数</th><th>薪资差</th><th>参考城市</th><th>首单里程</th><th>专家PPH</th><th>妥投异常率</th><th>DNR率</th><th>面积</th><th>人口密度</th><th>地址结构</th></tr></thead><tbody>{routeRows.slice().sort((a, b) => b.monthVolume - a.monthVolume).slice(0, 120).map((row) => <tr key={row.key}><td><strong>{row.route}</strong><small>{row.site} · {row.dsp}</small></td><td><span className="monthly-pill difficulty">{row.property?.difficulty || "未标注"}</span></td><td>{row.property?.businessMode || "未标注"}</td><td>{row.property?.routeUnitPrice ? `$${formatNumber(row.property.routeUnitPrice, 2)}` : "—"}</td><td>{row.property?.routeHourlyWage ? `$${formatNumber(row.property.routeHourlyWage, 2)}` : "—"}</td><td>{row.property?.amazonHourlyMedian ? `$${formatNumber(row.property.amazonHourlyMedian, 2)}` : "—"}</td><td className={salaryGap(row.property) >= 0 ? "monthly-positive" : "monthly-negative"}>{row.property ? `${salaryGap(row.property) >= 0 ? "+" : ""}$${formatNumber(salaryGap(row.property), 2)}` : "—"}</td><td className="monthly-wide-cell">{row.property?.salaryCity || "—"}</td><td>{row.property?.firstMile ? `${formatNumber(row.property.firstMile, 1)} mi` : "—"}</td><td>{row.property?.expertPph ? formatNumber(row.property.expertPph, 2) : "—"}</td><td>{row.property?.deliveryExceptionRate ? formatPercent(row.property.deliveryExceptionRate) : "—"}</td><td>{row.property?.dnrRate ? formatPercent(row.property.dnrRate) : "—"}</td><td>{row.property?.landArea ? formatNumber(row.property.landArea, 1) : "—"}</td><td>{row.property?.populationDensity ? formatNumber(row.property.populationDensity, 1) : "—"}</td><td className="monthly-address-cell">{row.property?.addressMix || "—"}</td></tr>)}</tbody></table></div>
         </section>
         <footer className="monthly-footer"><span>PPH月报系统 · 周数据自动汇总</span><span>单量统一采用妥投量口径</span></footer>
+        </div>
       </main>
     </div>
   );
