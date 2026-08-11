@@ -21,6 +21,7 @@ import {
   ArrowUpRight,
   BarChart3,
   BellRing,
+  CalendarRange,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -112,6 +113,7 @@ const postalRowKey = (
 ) => `${row.postalCode}¦${row.site}¦${row.dsp}¦${row.route ?? ""}`;
 
 const FUNCTION_NAV_ITEMS = [
+  { id: "monthly", label: "PPH月报系统", icon: CalendarRange },
   { id: "route-watchlist", label: "路区重点名单", icon: Route },
   { id: "postal-watchlist", label: "邮编重点名单", icon: MapPinned },
   { id: "data", label: "路区全量数据", icon: Database },
@@ -2070,6 +2072,10 @@ export default function Home() {
   };
 
   const navigate = (id: string) => {
+    if (id === "monthly") {
+      window.location.href = "/monthly";
+      return;
+    }
     const requestedRegion =
       id === "overview"
         ? "ALL"
