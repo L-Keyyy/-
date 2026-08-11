@@ -678,7 +678,13 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
-export default function Home() {
+type HomeProps = {
+  reportVariant?: "weekly" | "monthly";
+};
+
+export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
+  const reportLabel = reportVariant === "monthly" ? "月报" : "周报";
+  const reportSystemName = `PPH${reportLabel}系统`;
   const lockedRegion =
     typeof window !== "undefined" ? window.__PPH_LOCKED_REGION__ : undefined;
   const standaloneMode =
@@ -2513,7 +2519,7 @@ export default function Home() {
         .replace(/>/g, "\\u003e")
         .replace(/\u2028/g, "\\u2028")
         .replace(/\u2029/g, "\\u2029");
-      const initialDataScript = `<script id="pph-initial-data">window.__PPH_LOCKED_REGION__=${JSON.stringify(activeRegion)};window.__PPH_INITIAL_DATA__=${serializedData};document.title=${JSON.stringify(`${currentRegionName}PPH周报`)};</script>`;
+      const initialDataScript = `<script id="pph-initial-data">window.__PPH_LOCKED_REGION__=${JSON.stringify(activeRegion)};window.__PPH_INITIAL_DATA__=${serializedData};document.title=${JSON.stringify(`${currentRegionName}PPH${reportLabel}`)};</script>`;
       const initialDataMarker = '<script id="pph-initial-data">';
       const initialDataStart = html.lastIndexOf(initialDataMarker);
       const initialDataEnd =
@@ -2528,7 +2534,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${currentRegionName}PPH周报.html`;
+      link.download = `${currentRegionName}PPH${reportLabel}.html`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -2537,7 +2543,7 @@ export default function Home() {
         `${currentRegionName}独立版HTML已生成，仅包含本大区数据。`,
       );
     } catch {
-      setNotice("HTML周报生成异常，请刷新页面后重试。");
+      setNotice(`HTML${reportLabel}生成异常，请刷新页面后重试。`);
     } finally {
       setExportingHtml(false);
     }
@@ -3107,7 +3113,7 @@ export default function Home() {
       <aside className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`}>
         <div className="brand">
           {standaloneMode ? (
-            <div className="brand-mark" aria-label="PPH周报">
+            <div className="brand-mark" aria-label={`PPH${reportLabel}`}>
               P
             </div>
           ) : (
@@ -3117,12 +3123,12 @@ export default function Home() {
               onClick={toggleSidebarMode}
               aria-label={
                 sidebarMode === "function"
-                  ? "打开大区周报导航"
+                  ? `打开大区${reportLabel}导航`
                   : "返回功能导航"
               }
               title={
                 sidebarMode === "function"
-                  ? "打开原大区周报导航"
+                  ? `打开原大区${reportLabel}导航`
                   : "返回功能导航"
               }
             >
@@ -3130,7 +3136,7 @@ export default function Home() {
             </button>
           )}
           <div>
-            <strong>PPH周报</strong>
+            <strong>PPH{reportLabel}</strong>
             <span>运营效能系统</span>
           </div>
           <button
@@ -3142,7 +3148,7 @@ export default function Home() {
           </button>
         </div>
         <div className="nav-label">
-          {sidebarMode === "function" ? "功能导航" : "原大区周报导航"}
+          {sidebarMode === "function" ? "功能导航" : `原大区${reportLabel}导航`}
         </div>
         <nav className="main-nav" aria-label="主导航">
           {sidebarMode === "function"
@@ -3155,7 +3161,7 @@ export default function Home() {
                       onClick={() => navigate(item.id)}
                     >
                       <Icon size={17} />
-                      <span>{item.label}</span>
+                      <span>{item.label.replaceAll("周报", reportLabel)}</span>
                     </button>
                   </div>
                 );
@@ -3167,7 +3173,7 @@ export default function Home() {
                 return (
                   <div key={item.id}>
                     {regionBoundary ? (
-                      <div className="nav-group-label">大区周报</div>
+                      <div className="nav-group-label">大区{reportLabel}</div>
                     ) : null}
                     {actionBoundary ? (
                       <div className="nav-group-label">运营管理</div>
@@ -3177,7 +3183,7 @@ export default function Home() {
                       onClick={() => navigate(item.id)}
                     >
                       <Icon size={17} />
-                      <span>{item.label}</span>
+                      <span>{item.label.replaceAll("周报", reportLabel)}</span>
                       {REGION_OPTIONS.some(
                         (region) => region.code === item.id,
                       ) ? (
@@ -3223,13 +3229,13 @@ export default function Home() {
             </button>
             <div>
               <div className="breadcrumb">
-                PPH周报系统 <ChevronRight size={13} />{" "}
+                {reportSystemName} <ChevronRight size={13} />{" "}
                 <span>{currentRegionName}</span>
               </div>
               <h1>
                 {activeRegion === "ALL"
                   ? "全国配送效率总览"
-                  : `${currentRegionName} PPH周报`}
+                  : `${currentRegionName} PPH${reportLabel}`}
               </h1>
             </div>
           </div>
@@ -3299,7 +3305,7 @@ export default function Home() {
                 ) : (
                   <Download size={16} />
                 )}
-                下载HTML周报
+                下载HTML{reportLabel}
               </button>
               <button
                 className="primary-button"
@@ -3350,7 +3356,7 @@ export default function Home() {
             ) : null}
           </section>
 
-          <section className="filter-bar" aria-label="周报筛选">
+          <section className="filter-bar" aria-label={`${reportLabel}筛选`}>
             <div className="filter-lead">
               <Filter size={17} />
               <span>筛选</span>
@@ -4555,7 +4561,7 @@ export default function Home() {
           </section>
 
           <footer className="dashboard-footer">
-            <span>PPH周报系统 · 指标按当前大区独立计算</span>
+            <span>{reportSystemName} · 指标按当前大区独立计算</span>
             <span>异常依据：自身历史 · 大区分位数 · 相似路区</span>
           </footer>
         </div>
