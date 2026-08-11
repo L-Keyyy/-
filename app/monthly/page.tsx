@@ -2,14 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import ReactECharts from "echarts-for-react";
 import {
+  Activity,
   ArrowDownRight,
   ArrowLeft,
+  ArrowRight,
   ArrowUpRight,
   CalendarRange,
   CircleDollarSign,
   Calculator,
   ChevronDown,
+  Clock3,
   Download,
   FileSpreadsheet,
   Gauge,
@@ -20,6 +24,8 @@ import {
   SlidersHorizontal,
   TrendingUp,
   WalletCards,
+  X,
+  Zap,
 } from "lucide-react";
 import {
   REGION_OPTIONS,
@@ -103,6 +109,146 @@ function getConsecutiveUp(values: Array<number | null>) {
   return count;
 }
 
+function buildMonthlyDrawerTrendOption(
+  history: Array<{ week: string; attempted: number; operationPph: number }>,
+) {
+  const averagePph = history.length
+    ? sum(history.map((item) => item.operationPph)) / history.length
+    : 0;
+  return {
+    animationDuration: 520,
+    animationEasing: "cubicOut",
+    color: ["#9fc2ff", "#2563eb"],
+    grid: { top: 44, right: 48, bottom: 32, left: 42 },
+    legend: {
+      top: 4,
+      right: 2,
+      itemWidth: 10,
+      itemHeight: 7,
+      textStyle: { color: "#64748b", fontSize: 8 },
+      data: ["妥投量", "妥投PPH"],
+    },
+    tooltip: {
+      trigger: "axis",
+      backgroundColor: "rgba(7, 26, 58, 0.94)",
+      borderWidth: 0,
+      padding: [8, 10],
+      textStyle: { color: "#fff", fontSize: 9 },
+      axisPointer: {
+        type: "line",
+        lineStyle: { color: "#9eb0c9", width: 1, type: "dashed" },
+      },
+      formatter: (
+        params: Array<{
+          axisValue: string;
+          marker: string;
+          seriesName: string;
+          value: number;
+        }>,
+      ) => {
+        if (!params.length) return "";
+        return [
+          `<strong>${params[0].axisValue}</strong>`,
+          ...params.map(
+            (item) =>
+              `${item.marker}${item.seriesName}：<strong>${
+                item.seriesName === "妥投PPH"
+                  ? formatNumber(item.value, 2)
+                  : `${formatNumber(item.value)} 单`
+              }</strong>`,
+          ),
+        ].join("<br/>");
+      },
+    },
+    xAxis: {
+      type: "category",
+      data: history.map((item) => item.week),
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: "#dbe4f0" } },
+      axisLabel: { color: "#64748b", fontSize: 8, margin: 10 },
+    },
+    yAxis: [
+      {
+        type: "value",
+        name: "PPH",
+        interval: 0.5,
+        min: ({ min }: { min: number }) =>
+          Math.max(0, Math.floor((min - 0.5) * 2) / 2),
+        max: ({ max }: { max: number }) =>
+          Math.ceil((max + 0.5) * 2) / 2,
+        nameTextStyle: { color: "#94a3b8", fontSize: 8 },
+        splitLine: { lineStyle: { color: "#edf1f6", type: "dashed" } },
+        axisLabel: { color: "#94a3b8", fontSize: 8 },
+      },
+      {
+        type: "value",
+        name: "妥投量",
+        nameTextStyle: { color: "#94a3b8", fontSize: 8 },
+        splitLine: { show: false },
+        axisLabel: {
+          color: "#94a3b8",
+          fontSize: 8,
+          formatter: (value: number) => formatNumber(value),
+        },
+      },
+    ],
+    series: [
+      {
+        name: "妥投量",
+        type: "bar",
+        yAxisIndex: 1,
+        data: history.map((item) => item.attempted),
+        barMaxWidth: 24,
+        itemStyle: {
+          color: "rgba(102, 159, 255, 0.4)",
+          borderColor: "rgba(72, 132, 238, 0.32)",
+          borderWidth: 1,
+          borderRadius: [4, 4, 0, 0],
+        },
+        emphasis: { itemStyle: { color: "rgba(79, 143, 255, 0.65)" } },
+      },
+      {
+        name: "妥投PPH",
+        type: "line",
+        data: history.map((item) => Number(item.operationPph.toFixed(2))),
+        smooth: 0.28,
+        symbol: "circle",
+        symbolSize: 7,
+        lineStyle: { width: 2.5, color: "#2563eb" },
+        itemStyle: { color: "#fff", borderColor: "#2563eb", borderWidth: 2.5 },
+        areaStyle: {
+          color: {
+            type: "linear",
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(37, 99, 235, 0.14)" },
+              { offset: 1, color: "rgba(37, 99, 235, 0.01)" },
+            ],
+          },
+        },
+        markLine: averagePph
+          ? {
+              silent: true,
+              symbol: "none",
+              label: {
+                formatter: `均值 ${formatNumber(averagePph, 2)}`,
+                color: "#64748b",
+                fontSize: 7,
+                position: "insideEndTop",
+              },
+              lineStyle: { color: "#94a3b8", type: "dashed", width: 1 },
+              data: [{ yAxis: Number(averagePph.toFixed(2)) }],
+            }
+          : undefined,
+        z: 3,
+      },
+    ],
+  };
+}
+
 function buildRows(
   mode: EntityMode,
   records: PerformanceRecord[] | PostalPerformanceRecord[],
@@ -179,6 +325,11 @@ export default function MonthlyDashboard() {
   const [calculatorRoute, setCalculatorRoute] = useState("");
   const [targetHourlyWage, setTargetHourlyWage] = useState("35");
   const [calculatorPph, setCalculatorPph] = useState("");
+  const [selectedDetailRow, setSelectedDetailRow] = useState<MonthlyRow | null>(null);
+
+  useEffect(() => {
+    setSelectedDetailRow(null);
+  }, [selectedMonth, regionFilter, siteFilter, dspFilter, difficultyFilter, businessFilter]);
 
   useEffect(() => {
     Promise.all([
@@ -270,6 +421,90 @@ export default function MonthlyDashboard() {
     () => buildRows("postal", monthPostalRecords, monthWeeks, propertyMap),
     [monthPostalRecords, monthWeeks, propertyMap],
   );
+
+  const selectedRouteRecords = useMemo(() => {
+    if (!selectedDetailRow) return [];
+    return monthRecords.filter(
+      (record) =>
+        record.route === selectedDetailRow.route &&
+        record.site === selectedDetailRow.site &&
+        record.dsp === selectedDetailRow.dsp,
+    );
+  }, [monthRecords, selectedDetailRow]);
+
+  const selectedRouteHistory = useMemo(() => {
+    if (!selectedDetailRow) return [];
+    return monthWeeks
+      .map((week) => {
+        const matches = selectedRouteRecords.filter((record) => record.week === week);
+        const attempted = sum(matches.map((record) => record.attempted));
+        const totalHours = sum(matches.map((record) => record.totalHours));
+        return {
+          week,
+          attempted,
+          operationPph: pph(attempted, totalHours),
+        };
+      })
+      .filter((item) => item.attempted > 0);
+  }, [monthWeeks, selectedDetailRow, selectedRouteRecords]);
+
+  const selectedRouteTrendOption = useMemo(
+    () => buildMonthlyDrawerTrendOption(selectedRouteHistory),
+    [selectedRouteHistory],
+  );
+
+  const selectedRouteMetrics = useMemo(() => {
+    const attempted = sum(selectedRouteRecords.map((record) => record.attempted));
+    const totalHours = sum(selectedRouteRecords.map((record) => record.totalHours));
+    return {
+      attempted,
+      totalHours,
+      operationPph: pph(attempted, totalHours),
+      sortHours: sum(selectedRouteRecords.map((record) => record.sortHours)),
+      transitHours: sum(selectedRouteRecords.map((record) => record.transitHours)),
+      deliveryHours: sum(selectedRouteRecords.map((record) => record.deliveryHours)),
+    };
+  }, [selectedRouteRecords]);
+
+  const selectedRoutePostalRows = useMemo(() => {
+    if (!selectedDetailRow) return [];
+    return postalRows
+      .filter(
+        (row) =>
+          row.route === selectedDetailRow.route &&
+          row.site === selectedDetailRow.site &&
+          row.dsp === selectedDetailRow.dsp,
+      )
+      .sort((left, right) => right.monthVolume - left.monthVolume);
+  }, [postalRows, selectedDetailRow]);
+
+  const selectedSimilarRows = useMemo(() => {
+    if (!selectedDetailRow) return [];
+    return routeRows
+      .filter((row) => row.key !== selectedDetailRow.key)
+      .map((row) => ({
+        row,
+        volumeGap:
+          selectedDetailRow.monthVolume > 0
+            ? Math.abs(row.monthVolume - selectedDetailRow.monthVolume) /
+              selectedDetailRow.monthVolume
+            : 0,
+        pphGap:
+          selectedDetailRow.monthPph > 0
+            ? (row.monthPph - selectedDetailRow.monthPph) /
+              selectedDetailRow.monthPph
+            : 0,
+        sameDifficulty:
+          Boolean(selectedDetailRow.property?.difficulty) &&
+          row.property?.difficulty === selectedDetailRow.property?.difficulty,
+      }))
+      .sort(
+        (left, right) =>
+          Number(right.sameDifficulty) - Number(left.sameDifficulty) ||
+          left.volumeGap - right.volumeGap,
+      )
+      .slice(0, 5);
+  }, [routeRows, selectedDetailRow]);
 
   const activeRows = entityMode === "route" ? routeRows : postalRows;
   const filteredRows = useMemo(() => {
@@ -533,7 +768,7 @@ export default function MonthlyDashboard() {
           <div className="monthly-metric"><small>连续上涨</small><strong>{formatNumber(metrics.rising)}</strong><span>至少连续2周</span></div>
         </section>
 
-        <section id="trend" className="monthly-panel">
+        <section id="trend" className="monthly-panel panel nav-anchor">
           <div className="monthly-section-head">
             <div><span>CONTINUOUS WEEKLY CHANGE</span><h2>连续周PPH变化</h2><p>同一张表查看周度PPH、累计变化、难易度及薪资水平</p></div>
             <div className="monthly-segment"><button className={entityMode === "route" ? "active" : ""} onClick={() => setEntityMode("route")}><Route size={15} />路区</button><button className={entityMode === "postal" ? "active" : ""} onClick={() => setEntityMode("postal")}><MapPinned size={15} />邮编</button></div>
@@ -541,13 +776,39 @@ export default function MonthlyDashboard() {
           <div className="monthly-table-tools"><label><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索路区、邮编、站点、DSP或城市" /></label><span>共 {formatNumber(filteredRows.length)} 条</span></div>
           <div className="monthly-table-wrap">
             <table className="monthly-table monthly-trend-table"><thead><tr><th>{entityMode === "route" ? "路区" : "邮编 / 路区"}</th><th>站点 / DSP</th>{monthWeeks.map((week) => <th key={week}>{week} PPH</th>)}<th>连续上涨</th><th>累计变化</th><th>月妥投量</th><th>难易度</th><th>路区时薪</th><th>薪资差</th></tr></thead>
-              <tbody>{filteredRows.slice(0, 120).map((row) => <tr key={row.key}><td><strong>{entityMode === "route" ? row.route : row.postalCode}</strong><small>{entityMode === "postal" ? row.route : row.region}</small></td><td><strong>{row.site}</strong><small>{row.dsp}</small></td>{row.weekPph.map((value, index) => <td key={`${row.key}-${monthWeeks[index]}`}><strong>{value === null ? "—" : formatNumber(value, 2)}</strong>{index > 0 && value !== null && row.weekPph[index - 1] ? <small className={value >= row.weekPph[index - 1]! ? "monthly-positive" : "monthly-negative"}>{value >= row.weekPph[index - 1]! ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}{formatPercent(Math.abs((value - row.weekPph[index - 1]!) / row.weekPph[index - 1]!))}</small> : null}</td>)}<td><span className={row.consecutiveUp >= 2 ? "monthly-pill good" : "monthly-pill"}>{row.consecutiveUp ? `${row.consecutiveUp}周` : "—"}</span></td><td className={(row.cumulativeChange ?? 0) >= 0 ? "monthly-positive" : "monthly-negative"}>{signedPercent(row.cumulativeChange)}</td><td>{formatNumber(row.monthVolume)}</td><td><span className="monthly-pill difficulty">{row.property?.difficulty || "未标注"}</span></td><td>{row.property?.routeHourlyWage ? `$${formatNumber(row.property.routeHourlyWage, 2)}` : "—"}</td><td className={salaryGap(row.property) >= 0 ? "monthly-positive" : "monthly-negative"}>{row.property ? `${salaryGap(row.property) >= 0 ? "+" : ""}$${formatNumber(salaryGap(row.property), 2)}` : "—"}</td></tr>)}</tbody></table>
+              <tbody>
+                {filteredRows.slice(0, 120).map((row) => {
+                  const detailRow =
+                    routeRows.find(
+                      (routeRow) =>
+                        routeRow.route === row.route &&
+                        routeRow.site === row.site &&
+                        routeRow.dsp === row.dsp,
+                    ) ?? row;
+                  return <tr key={row.key}>
+                    <td>
+                      <button className="monthly-route-link" onClick={() => setSelectedDetailRow(detailRow)}>
+                        <strong>{entityMode === "route" ? row.route : row.postalCode}</strong>
+                        <small>{entityMode === "postal" ? row.route : row.region} · 点击查看趋势</small>
+                      </button>
+                    </td>
+                    <td><strong>{row.site}</strong><small>{row.dsp}</small></td>
+                    {row.weekPph.map((value, index) => <td key={`${row.key}-${monthWeeks[index]}`}><strong>{value === null ? "—" : formatNumber(value, 2)}</strong>{index > 0 && value !== null && row.weekPph[index - 1] ? <small className={value >= row.weekPph[index - 1]! ? "monthly-positive" : "monthly-negative"}>{value >= row.weekPph[index - 1]! ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}{formatPercent(Math.abs((value - row.weekPph[index - 1]!) / row.weekPph[index - 1]!))}</small> : null}</td>)}
+                    <td><span className={row.consecutiveUp >= 2 ? "monthly-pill good" : "monthly-pill"}>{row.consecutiveUp ? `${row.consecutiveUp}周` : "—"}</span></td>
+                    <td className={(row.cumulativeChange ?? 0) >= 0 ? "monthly-positive" : "monthly-negative"}>{signedPercent(row.cumulativeChange)}</td>
+                    <td>{formatNumber(row.monthVolume)}</td>
+                    <td><span className="monthly-pill difficulty">{row.property?.difficulty || "未标注"}</span></td>
+                    <td>{row.property?.routeHourlyWage ? `$${formatNumber(row.property.routeHourlyWage, 2)}` : "—"}</td>
+                    <td className={salaryGap(row.property) >= 0 ? "monthly-positive" : "monthly-negative"}>{row.property ? `${salaryGap(row.property) >= 0 ? "+" : ""}$${formatNumber(salaryGap(row.property), 2)}` : "—"}</td>
+                  </tr>;
+                })}
+              </tbody></table>
           </div>
         </section>
 
         <section className="monthly-grid-two">
-          <div id="p75" className="monthly-panel compact"><div className="monthly-section-head"><div><span>TOP QUARTILE</span><h2>P75高PPH路区</h2><p>当前P75标准：{formatNumber(p75, 2)} PPH</p></div><span className="monthly-count">{p75Rows.length}</span></div><div className="monthly-table-wrap"><table className="monthly-table"><thead><tr><th>路区</th><th>月PPH</th><th>高于P75</th><th>妥投量</th><th>难易度</th></tr></thead><tbody>{p75Rows.slice(0, 12).map((row) => <tr key={row.key}><td><strong>{row.route}</strong><small>{row.site} · {row.dsp}</small></td><td><strong>{formatNumber(row.monthPph, 2)}</strong></td><td className="monthly-positive">+{formatNumber(row.monthPph - p75, 2)}</td><td>{formatNumber(row.monthVolume)}</td><td>{row.property?.difficulty || "未标注"}</td></tr>)}</tbody></table></div></div>
-          <div id="pressure" className="monthly-panel compact"><div className="monthly-section-head"><div><span>VOLUME UP · PPH FLAT</span><h2>单量上升但PPH未升</h2><p>最近两周妥投量上涨，PPH涨幅≤1%</p></div><span className="monthly-count warning">{volumePressureRows.length}</span></div><div className="monthly-table-wrap"><table className="monthly-table"><thead><tr><th>路区</th><th>单量涨幅</th><th>增加单量</th><th>PPH变化</th><th>难易度</th></tr></thead><tbody>{volumePressureRows.slice(0, 12).map((row) => { const previousVolume = row.weekVolumes.at(-2) ?? 0; const currentVolume = row.weekVolumes.at(-1) ?? 0; const previousPph = row.weekPph.at(-2) ?? 0; const currentPph = row.weekPph.at(-1) ?? 0; const pphChange = previousPph > 0 ? (currentPph - previousPph) / previousPph : 0; return <tr key={row.key}><td><strong>{row.route}</strong><small>{row.site} · {row.dsp}</small></td><td className="monthly-warning">+{formatPercent((currentVolume - previousVolume) / previousVolume)}</td><td>+{formatNumber(currentVolume - previousVolume)}</td><td className={pphChange >= 0 ? "monthly-positive" : "monthly-negative"}>{signedPercent(pphChange)}</td><td>{row.property?.difficulty || "未标注"}</td></tr>; })}</tbody></table></div></div>
+          <div id="p75" className="monthly-panel panel compact nav-anchor"><div className="monthly-section-head"><div><span>TOP QUARTILE</span><h2>P75高PPH路区</h2><p>当前P75标准：{formatNumber(p75, 2)} PPH</p></div><span className="monthly-count">{p75Rows.length}</span></div><div className="monthly-table-wrap"><table className="monthly-table"><thead><tr><th>路区</th><th>月PPH</th><th>高于P75</th><th>妥投量</th><th>难易度</th></tr></thead><tbody>{p75Rows.slice(0, 12).map((row) => <tr key={row.key}><td><button className="monthly-route-link" onClick={() => setSelectedDetailRow(row)}><strong>{row.route}</strong><small>{row.site} · {row.dsp} · 点击查看趋势</small></button></td><td><strong>{formatNumber(row.monthPph, 2)}</strong></td><td className="monthly-positive">+{formatNumber(row.monthPph - p75, 2)}</td><td>{formatNumber(row.monthVolume)}</td><td>{row.property?.difficulty || "未标注"}</td></tr>)}</tbody></table></div></div>
+          <div id="pressure" className="monthly-panel panel compact nav-anchor"><div className="monthly-section-head"><div><span>VOLUME UP · PPH FLAT</span><h2>单量上升但PPH未升</h2><p>最近两周妥投量上涨，PPH涨幅≤1%</p></div><span className="monthly-count warning">{volumePressureRows.length}</span></div><div className="monthly-table-wrap"><table className="monthly-table"><thead><tr><th>路区</th><th>单量涨幅</th><th>增加单量</th><th>PPH变化</th><th>难易度</th></tr></thead><tbody>{volumePressureRows.slice(0, 12).map((row) => { const previousVolume = row.weekVolumes.at(-2) ?? 0; const currentVolume = row.weekVolumes.at(-1) ?? 0; const previousPph = row.weekPph.at(-2) ?? 0; const currentPph = row.weekPph.at(-1) ?? 0; const pphChange = previousPph > 0 ? (currentPph - previousPph) / previousPph : 0; return <tr key={row.key}><td><button className="monthly-route-link" onClick={() => setSelectedDetailRow(row)}><strong>{row.route}</strong><small>{row.site} · {row.dsp} · 点击查看趋势</small></button></td><td className="monthly-warning">+{formatPercent((currentVolume - previousVolume) / previousVolume)}</td><td>+{formatNumber(currentVolume - previousVolume)}</td><td className={pphChange >= 0 ? "monthly-positive" : "monthly-negative"}>{signedPercent(pphChange)}</td><td>{row.property?.difficulty || "未标注"}</td></tr>; })}</tbody></table></div></div>
         </section>
 
         <section id="salary-compare" className="monthly-panel panel nav-anchor salary-compare-panel">
@@ -573,7 +834,7 @@ export default function MonthlyDashboard() {
                     ? (row.property?.routeHourlyWage ?? 0) / (row.property?.amazonHourlyMedian ?? 1)
                     : 0;
                   return <tr key={row.key}>
-                    <td><strong>{row.route}</strong><small>{row.region}</small></td>
+                    <td><button className="monthly-route-link" onClick={() => setSelectedDetailRow(row)}><strong>{row.route}</strong><small>{row.region} · 点击查看趋势</small></button></td>
                     <td><strong>{row.site}</strong><small>{row.dsp}</small></td>
                     <td><span className="monthly-pill difficulty">{row.property?.difficulty || "未标注"}</span></td>
                     <td>{formatNumber(row.monthPph, 2)}</td>
@@ -626,11 +887,189 @@ export default function MonthlyDashboard() {
 
         <section id="properties" className="monthly-panel panel nav-anchor">
           <div className="monthly-section-head"><div><span>SALARY & ROUTE PROFILE</span><h2>薪资、难易度与路区综合画像</h2><p>恢复周报中精简掉的属性字段，用于解释效率差异和制定站点动作</p></div><FileSpreadsheet size={28} /></div>
-          <div className="monthly-table-wrap"><table className="monthly-table monthly-profile-table"><thead><tr><th>路区</th><th>难易度</th><th>业务模式</th><th>路区单价</th><th>路区时薪</th><th>Amazon时薪中位数</th><th>薪资差</th><th>参考城市</th><th>首单里程</th><th>专家PPH</th><th>妥投异常率</th><th>DNR率</th><th>面积</th><th>人口密度</th><th>地址结构</th></tr></thead><tbody>{routeRows.slice().sort((a, b) => b.monthVolume - a.monthVolume).slice(0, 120).map((row) => <tr key={row.key}><td><strong>{row.route}</strong><small>{row.site} · {row.dsp}</small></td><td><span className="monthly-pill difficulty">{row.property?.difficulty || "未标注"}</span></td><td>{row.property?.businessMode || "未标注"}</td><td>{row.property?.routeUnitPrice ? `$${formatNumber(row.property.routeUnitPrice, 2)}` : "—"}</td><td>{row.property?.routeHourlyWage ? `$${formatNumber(row.property.routeHourlyWage, 2)}` : "—"}</td><td>{row.property?.amazonHourlyMedian ? `$${formatNumber(row.property.amazonHourlyMedian, 2)}` : "—"}</td><td className={salaryGap(row.property) >= 0 ? "monthly-positive" : "monthly-negative"}>{row.property ? `${salaryGap(row.property) >= 0 ? "+" : ""}$${formatNumber(salaryGap(row.property), 2)}` : "—"}</td><td className="monthly-wide-cell">{row.property?.salaryCity || "—"}</td><td>{row.property?.firstMile ? `${formatNumber(row.property.firstMile, 1)} mi` : "—"}</td><td>{row.property?.expertPph ? formatNumber(row.property.expertPph, 2) : "—"}</td><td>{row.property?.deliveryExceptionRate ? formatPercent(row.property.deliveryExceptionRate) : "—"}</td><td>{row.property?.dnrRate ? formatPercent(row.property.dnrRate) : "—"}</td><td>{row.property?.landArea ? formatNumber(row.property.landArea, 1) : "—"}</td><td>{row.property?.populationDensity ? formatNumber(row.property.populationDensity, 1) : "—"}</td><td className="monthly-address-cell">{row.property?.addressMix || "—"}</td></tr>)}</tbody></table></div>
+          <div className="monthly-table-wrap"><table className="monthly-table monthly-profile-table"><thead><tr><th>路区</th><th>难易度</th><th>业务模式</th><th>路区单价</th><th>路区时薪</th><th>Amazon时薪中位数</th><th>薪资差</th><th>参考城市</th><th>首单里程</th><th>专家PPH</th><th>妥投异常率</th><th>DNR率</th><th>面积</th><th>人口密度</th><th>地址结构</th></tr></thead><tbody>{routeRows.slice().sort((a, b) => b.monthVolume - a.monthVolume).slice(0, 120).map((row) => <tr key={row.key}><td><button className="monthly-route-link" onClick={() => setSelectedDetailRow(row)}><strong>{row.route}</strong><small>{row.site} · {row.dsp} · 点击查看趋势</small></button></td><td><span className="monthly-pill difficulty">{row.property?.difficulty || "未标注"}</span></td><td>{row.property?.businessMode || "未标注"}</td><td>{row.property?.routeUnitPrice ? `$${formatNumber(row.property.routeUnitPrice, 2)}` : "—"}</td><td>{row.property?.routeHourlyWage ? `$${formatNumber(row.property.routeHourlyWage, 2)}` : "—"}</td><td>{row.property?.amazonHourlyMedian ? `$${formatNumber(row.property.amazonHourlyMedian, 2)}` : "—"}</td><td className={salaryGap(row.property) >= 0 ? "monthly-positive" : "monthly-negative"}>{row.property ? `${salaryGap(row.property) >= 0 ? "+" : ""}$${formatNumber(salaryGap(row.property), 2)}` : "—"}</td><td className="monthly-wide-cell">{row.property?.salaryCity || "—"}</td><td>{row.property?.firstMile ? `${formatNumber(row.property.firstMile, 1)} mi` : "—"}</td><td>{row.property?.expertPph ? formatNumber(row.property.expertPph, 2) : "—"}</td><td>{row.property?.deliveryExceptionRate ? formatPercent(row.property.deliveryExceptionRate) : "—"}</td><td>{row.property?.dnrRate ? formatPercent(row.property.dnrRate) : "—"}</td><td>{row.property?.landArea ? formatNumber(row.property.landArea, 1) : "—"}</td><td>{row.property?.populationDensity ? formatNumber(row.property.populationDensity, 1) : "—"}</td><td className="monthly-address-cell">{row.property?.addressMix || "—"}</td></tr>)}</tbody></table></div>
         </section>
         <footer className="monthly-footer"><span>PPH月报系统 · 周数据自动汇总</span><span>单量统一采用妥投量口径</span></footer>
         </div>
       </main>
+
+      {selectedDetailRow ? (
+        <div className="drawer-layer">
+          <button
+            className="drawer-backdrop"
+            onClick={() => setSelectedDetailRow(null)}
+            aria-label="关闭路区详情"
+          />
+          <section className="route-trend-flyout" aria-label="路区月内PPH与妥投量趋势">
+            <div className="drawer-route-trend-head">
+              <div>
+                <span><Activity size={12} /> MONTHLY WEEK PERFORMANCE</span>
+                <strong>{selectedDetailRow.route} · PPH与妥投量趋势</strong>
+                <small>折线为妥投PPH，柱状为妥投量；PPH刻度为0.5</small>
+              </div>
+              <div>
+                <span>月度</span>
+                <strong>{formatNumber(selectedRouteMetrics.operationPph, 2)}</strong>
+                <small>PPH</small>
+              </div>
+            </div>
+            {selectedRouteHistory.length ? (
+              <div
+                className="drawer-route-trend-chart"
+                role="img"
+                aria-label={`${selectedDetailRow.route}月内各周妥投PPH与妥投量趋势图`}
+              >
+                <ReactECharts
+                  option={selectedRouteTrendOption}
+                  notMerge
+                  lazyUpdate
+                  style={{ height: 300, width: "100%" }}
+                />
+              </div>
+            ) : (
+              <p className="missing-copy">当前路区暂无趋势数据。</p>
+            )}
+          </section>
+
+          <aside className="route-drawer" aria-label="月报路区详情">
+            <div className="drawer-head route-drawer-head">
+              <div className="route-head-identity">
+                <span>{selectedDetailRow.region} · {monthLabel(selectedMonth)}</span>
+                <h2>{selectedDetailRow.route}</h2>
+                <p>{selectedDetailRow.site} · {selectedDetailRow.dsp}</p>
+                <div className="drawer-postal-impact-head">
+                  <span className="drawer-postal-impact-label">月度路区画像</span>
+                  <strong>{formatNumber(selectedRoutePostalRows.length)} 个邮编</strong>
+                </div>
+              </div>
+              <div className="route-change-summary">
+                <div className="route-change-summary-title">
+                  <span>月内PPH变化</span>
+                  <strong>妥投PPH</strong>
+                  {selectedDetailRow.cumulativeChange !== null ? (
+                    <em className={selectedDetailRow.cumulativeChange >= 0 ? "positive" : "negative"}>
+                      {signedPercent(selectedDetailRow.cumulativeChange)}
+                    </em>
+                  ) : null}
+                </div>
+                <div className="route-change-range">
+                  <span>
+                    <small>{selectedRouteHistory[0]?.week ?? "期初"} · 从</small>
+                    <strong>{selectedRouteHistory[0] ? formatNumber(selectedRouteHistory[0].operationPph, 2) : "—"}</strong>
+                  </span>
+                  <ArrowRight size={14} />
+                  <span>
+                    <small>{selectedRouteHistory.at(-1)?.week ?? "期末"} · 到</small>
+                    <strong>{selectedRouteHistory.length ? formatNumber(selectedRouteHistory.at(-1)!.operationPph, 2) : "—"}</strong>
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setSelectedDetailRow(null)} aria-label="关闭路区详情">
+                <X size={19} />
+              </button>
+            </div>
+
+            <div className="drawer-scroll">
+              <section className="drawer-postal-impact-panel">
+                <div className="drawer-postal-impact-title">
+                  <div>
+                    <strong>该路区全部邮编</strong>
+                    <span>同步展示月度妥投PPH、妥投量与月内变化</span>
+                  </div>
+                  <span>{formatNumber(selectedRoutePostalRows.length)} 个</span>
+                </div>
+                {selectedRoutePostalRows.length ? (
+                  <div className="drawer-postal-impact-list monthly-drawer-postal-list">
+                    {selectedRoutePostalRows.map((row) => (
+                      <div className="monthly-postal-impact-row" key={row.key}>
+                        <span>
+                          <strong>{row.postalCode}</strong>
+                          <small>{row.site} · {row.dsp}</small>
+                        </span>
+                        <span>
+                          <strong>{formatNumber(row.monthPph, 2)}</strong>
+                          <small>{formatNumber(row.monthVolume)} 单 · {signedPercent(row.cumulativeChange)}</small>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="missing-copy">当前路区没有可关联的邮编数据。</p>
+                )}
+              </section>
+
+              <div className="drawer-metrics route-drawer-metrics">
+                <div>
+                  <span>PPH值</span>
+                  <strong>{formatNumber(selectedRouteMetrics.operationPph, 2)}</strong>
+                  <small>月度妥投口径</small>
+                </div>
+                <div>
+                  <span>妥投量</span>
+                  <strong>{formatNumber(selectedRouteMetrics.attempted)} 单</strong>
+                  <small>月度累计</small>
+                </div>
+              </div>
+
+              <section className="drawer-section">
+                <div className="drawer-section-title">
+                  <Clock3 size={16} />
+                  <strong>耗时结构</strong>
+                </div>
+                <div className="postal-time-list">
+                  {[
+                    { label: "分拣", value: selectedRouteMetrics.sortHours },
+                    { label: "在途", value: selectedRouteMetrics.transitHours },
+                    { label: "配送", value: selectedRouteMetrics.deliveryHours },
+                  ].map((item) => {
+                    const ratio = selectedRouteMetrics.totalHours > 0
+                      ? item.value / selectedRouteMetrics.totalHours
+                      : 0;
+                    return <div key={item.label}>
+                      <div><span>{item.label}</span><strong>{formatNumber(item.value, 1)} h · {formatPercent(ratio)}</strong></div>
+                      <div className="address-track"><span style={{ width: `${Math.min(100, ratio * 100)}%` }} /></div>
+                    </div>;
+                  })}
+                </div>
+              </section>
+
+              <section className="drawer-section">
+                <div className="drawer-section-title">
+                  <CircleDollarSign size={16} />
+                  <strong>薪资、难易度与路区画像</strong>
+                </div>
+                <div className="monthly-drawer-profile">
+                  <div><span>难易度</span><strong>{selectedDetailRow.property?.difficulty || "未标注"}</strong></div>
+                  <div><span>业务模式</span><strong>{selectedDetailRow.property?.businessMode || "未标注"}</strong></div>
+                  <div><span>路区单价</span><strong>{selectedDetailRow.property?.routeUnitPrice ? `$${formatNumber(selectedDetailRow.property.routeUnitPrice, 2)}/单` : "—"}</strong></div>
+                  <div><span>路区时薪</span><strong>{selectedDetailRow.property?.routeHourlyWage ? `$${formatNumber(selectedDetailRow.property.routeHourlyWage, 2)}/h` : "—"}</strong></div>
+                  <div><span>竞对时薪</span><strong>{selectedDetailRow.property?.amazonHourlyMedian ? `$${formatNumber(selectedDetailRow.property.amazonHourlyMedian, 2)}/h` : "—"}</strong></div>
+                  <div><span>薪资差</span><strong className={salaryGap(selectedDetailRow.property) >= 0 ? "monthly-positive" : "monthly-negative"}>{selectedDetailRow.property ? `${salaryGap(selectedDetailRow.property) >= 0 ? "+" : ""}$${formatNumber(salaryGap(selectedDetailRow.property), 2)}/h` : "—"}</strong></div>
+                  <div><span>首单里程</span><strong>{selectedDetailRow.property?.firstMile ? `${formatNumber(selectedDetailRow.property.firstMile, 1)} mi` : "—"}</strong></div>
+                  <div><span>专家PPH</span><strong>{selectedDetailRow.property?.expertPph ? formatNumber(selectedDetailRow.property.expertPph, 2) : "—"}</strong></div>
+                </div>
+                <p className="monthly-address-profile"><strong>地址结构：</strong>{selectedDetailRow.property?.addressMix || "暂无地址结构信息"}</p>
+              </section>
+
+              <section className="drawer-section">
+                <div className="drawer-section-title">
+                  <Zap size={16} />
+                  <strong>相似路区对比</strong>
+                </div>
+                <p className="similar-basis-note">优先匹配相同难易度，再按月度妥投量接近程度排序；PPH仅作为结果对比。</p>
+                <div className="similar-list">
+                  {selectedSimilarRows.map(({ row, volumeGap, pphGap }) => (
+                    <button key={row.key} onClick={() => setSelectedDetailRow(row)}>
+                      <div><strong>{row.route}</strong><span>{row.site} · 单量差 {formatPercent(volumeGap)}</span></div>
+                      <div><strong>{formatNumber(row.monthPph, 2)}</strong><span>PPH差 {pphGap >= 0 ? "+" : ""}{formatPercent(pphGap)}</span></div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }
