@@ -682,6 +682,15 @@ type HomeProps = {
   reportVariant?: "weekly" | "monthly";
 };
 
+const PPH_SAVED_UPLOADS_KEY = "pph-dashboard-uploaded-data-v1";
+
+type SavedUploads = {
+  records?: PerformanceRecord[];
+  postalRecords?: PostalPerformanceRecord[];
+  properties?: RouteProperty[];
+  updatedAt: string;
+};
+
 export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
   const reportLabel = reportVariant === "monthly" ? "月报" : "周报";
   const reportSystemName = `PPH${reportLabel}系统`;
@@ -753,11 +762,30 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
   const propertyInput = useRef<HTMLInputElement>(null);
   const postalInput = useRef<HTMLInputElement>(null);
 
+  const saveUploadedData = (data: Omit<SavedUploads, "updatedAt">) => {
+    const current = JSON.parse(
+      localStorage.getItem(PPH_SAVED_UPLOADS_KEY) ?? "{}",
+    ) as Partial<SavedUploads>;
+    localStorage.setItem(
+      PPH_SAVED_UPLOADS_KEY,
+      JSON.stringify({ ...current, ...data, updatedAt: new Date().toISOString() }),
+    );
+  };
+
   useEffect(() => {
-    const applyInitialData = (data: InitialData) => {
-      const transitFilled = imputeTransitHours(data.records);
+    const applyInitialData = (data: InitialData, saved?: SavedUploads) => {
+      const effectiveRecords = saved?.records?.length
+        ? saved.records
+        : data.records;
+      const effectivePostalRecords = saved?.postalRecords?.length
+        ? saved.postalRecords
+        : data.postalRecords ?? [];
+      const effectiveProperties = saved?.properties?.length
+        ? saved.properties
+        : data.properties;
+      const transitFilled = imputeTransitHours(effectiveRecords);
       const postalTransitFilled = imputeTransitHours(
-        data.postalRecords ?? [],
+        effectivePostalRecords,
       );
       const cleaned = cleanPerformanceRecords(transitFilled.records);
       const cleanedPostal = cleanPostalPerformanceRecords(
@@ -767,7 +795,7 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
       setPostalRecords(cleanedPostal.records);
       setPostalProperties(data.postalProperties ?? []);
       setPostalCosts(data.postalCosts ?? []);
-      setProperties(data.properties);
+      setProperties(effectiveProperties);
       setExcludedCount(cleaned.excluded);
       setExcludedPostalCount(cleanedPostal.excluded);
       setEstimatedTransitCount(
@@ -791,8 +819,17 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
       setSelectedWeek(dataWeeks.at(-1) ?? "");
     };
 
+    let savedUploads: SavedUploads | undefined;
+    try {
+      savedUploads = JSON.parse(
+        localStorage.getItem(PPH_SAVED_UPLOADS_KEY) ?? "null",
+      ) as SavedUploads | undefined;
+    } catch {
+      localStorage.removeItem(PPH_SAVED_UPLOADS_KEY);
+    }
+
     if (window.__PPH_INITIAL_DATA__) {
-      applyInitialData(window.__PPH_INITIAL_DATA__);
+      applyInitialData(window.__PPH_INITIAL_DATA__, savedUploads);
       setLoading(false);
       return;
     }
@@ -812,7 +849,7 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
         ]);
         return { ...data, postalRecords: postalData.postalRecords };
       })
-      .then(applyInitialData)
+      .then((data) => applyInitialData(data, savedUploads))
       .catch(() => {
         setNotice("请上传运营明细与路区属性文件开始分析。");
       })
@@ -1946,6 +1983,10 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
           ];
           setRecords(combinedRecords);
           setPostalRecords(combinedPostalRecords);
+          saveUploadedData({
+            records: combinedRecords,
+            postalRecords: combinedPostalRecords,
+          });
           setSelectedWeek(targetWeek);
           setExcludedCount((current) => current + cleaned.excluded);
           setExcludedPostalCount(
@@ -1986,6 +2027,7 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
             (row) => row.transitHoursEstimated,
           ).length;
           setRecords(cleaned.records);
+          saveUploadedData({ records: cleaned.records });
           setExcludedCount(cleaned.excluded);
           setEstimatedTransitCount(retainedEstimates);
           const nextWeeks = sortWeeks(cleaned.records.map((row) => row.week));
@@ -2017,6 +2059,7 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
           (row) => row.transitHoursEstimated,
         ).length;
         setPostalRecords(cleanedPostal.records);
+        saveUploadedData({ postalRecords: cleanedPostal.records });
         setExcludedPostalCount(cleanedPostal.excluded);
         setEstimatedPostalTransitCount(retainedEstimates);
         setPostalSearch("");
@@ -2052,6 +2095,7 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
           nextProperties,
         );
         setProperties(mergedProperties);
+        saveUploadedData({ properties: mergedProperties });
         setSourceMeta((current) =>
           current
             ? { ...current, propertyRows: mergedProperties.length }
