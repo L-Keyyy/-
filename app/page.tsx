@@ -2079,7 +2079,7 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
 
   const navigate = (id: string) => {
     if (id === "monthly") {
-      window.location.href = "/monthly";
+      window.location.href = reportVariant === "monthly" ? "/" : "/monthly";
       return;
     }
     const requestedRegion =
@@ -3161,7 +3161,11 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
                       onClick={() => navigate(item.id)}
                     >
                       <Icon size={17} />
-                      <span>{item.label.replaceAll("周报", reportLabel)}</span>
+                      <span>
+                        {item.id === "monthly" && reportVariant === "monthly"
+                          ? "PPH周报系统"
+                          : item.label.replaceAll("周报", reportLabel)}
+                      </span>
                     </button>
                   </div>
                 );
