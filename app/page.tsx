@@ -1646,6 +1646,22 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
   const p25WatchRows = routeRows
     .filter((row) => row.operationPph < quantiles.p25)
     .sort((a, b) => a.operationPph - b.operationPph);
+  const monthlyDifficultyRows = useMemo(
+    () =>
+      properties
+        .filter((item) => item.difficulty)
+        .filter((item) => {
+          const query = tableSearch.trim().toLowerCase();
+          return query
+            ? [item.route, item.transferSite, item.fleet, item.difficulty]
+                .join(" ")
+                .toLowerCase()
+                .includes(query)
+            : true;
+        })
+        .slice(0, 80),
+    [properties, tableSearch],
+  );
 
   const weeklyRouteMap = useMemo(() => {
     const map = new Map<string, RouteRow[]>();
@@ -2660,6 +2676,29 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
       .slice(-4);
   }, [currentWeekIndex, selectedRoute, weeklyRouteMap, weeks]);
   const selectedRouteDetail = selectedRouteHistory.at(-1) ?? selectedRoute;
+  const selectedRouteProperty = selectedRoute
+    ? propertyMap.get(selectedRoute.route)
+    : undefined;
+  const selectedRouteReasons = useMemo(() => {
+    if (!selectedRouteDetail) return [];
+    const reasons: string[] = [];
+    if (selectedRouteDetail.operationPph < quantiles.p25) {
+      reasons.push(
+        `妥投PPH低于本区P25（${formatNumber(quantiles.p25, 2)}）`,
+      );
+    }
+    if ((selectedRouteDetail.wow ?? 0) < 0) {
+      reasons.push(`较上周下降 ${formatPercent(Math.abs(selectedRouteDetail.wow ?? 0))}`);
+    }
+    const medianVolume = median(routeRows.map((row) => row.attempted));
+    if (
+      selectedRouteDetail.attempted >= medianVolume &&
+      selectedRouteDetail.operationPph < quantiles.p25
+    ) {
+      reasons.push("高单量且效率落入本区P25以下");
+    }
+    return reasons;
+  }, [quantiles.p25, routeRows, selectedRouteDetail]);
   const selectedRouteTrendOption = useMemo(
     () => buildDrawerTrendOption(selectedRouteHistory),
     [selectedRouteHistory],
@@ -4229,6 +4268,51 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
             </article>
           </section>
 
+          {reportVariant === "monthly" ? (
+            <section className="panel monthly-reference-panel">
+              <SectionHeader
+                eyebrow="ROUTE DIFFICULTY"
+                title="路区难易度数据"
+                description={`现有月报模块基础上新增；共 ${formatNumber(properties.length)} 个路区，其中 ${formatNumber(properties.filter((item) => item.difficulty).length)} 个已标注难易度`}
+                right={
+                  <span className="method-tag">
+                    <CheckCircle2 size={14} /> 全量已载入
+                  </span>
+                }
+              />
+              <div className="monthly-reference-table-wrap">
+                <table className="monthly-reference-table">
+                  <thead>
+                    <tr>
+                      <th>路区名称</th>
+                      <th>路区难易度</th>
+                      <th>首单里程</th>
+                      <th>熟手PPH</th>
+                      <th>派送异常率</th>
+                      <th>安全度</th>
+                      <th>路区时薪</th>
+                      <th>Amazon时薪</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyDifficultyRows.map((item) => (
+                      <tr key={item.route}>
+                        <td><strong>{item.route}</strong><small>{item.transferSite || "未标注站点"}</small></td>
+                        <td><span className="monthly-difficulty-value">{item.difficulty}</span></td>
+                        <td>{item.firstMile ? `${formatNumber(item.firstMile, 1)} mi` : "未标注"}</td>
+                        <td>{item.expertPph ? formatNumber(item.expertPph, 1) : "未标注"}</td>
+                        <td>{item.deliveryExceptionRate ? formatPercent(item.deliveryExceptionRate, 2) : "未标注"}</td>
+                        <td>{item.safety || "未标注"}</td>
+                        <td>{item.routeHourlyWage ? `$${formatNumber(item.routeHourlyWage, 2)}/h` : "暂无数据"}</td>
+                        <td>{item.amazonHourlyMedian ? `$${formatNumber(item.amazonHourlyMedian, 2)}/h` : "暂无数据"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : null}
+
           <section id="postal" className="panel postal-panel nav-anchor">
             <SectionHeader
               eyebrow="POSTAL DIMENSION"
@@ -4847,6 +4931,74 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
                   <small>同城市时薪中位数</small>
                 </div>
               </div>
+
+              {reportVariant === "monthly" ? (
+                <>
+                  <section className="drawer-section">
+                    <div className="drawer-section-title">
+                      <Gauge size={16} />
+                      <strong>时薪对比</strong>
+                    </div>
+                    <div className="property-grid salary-grid">
+                      <div className="route-salary-card">
+                        <span>路区时薪</span>
+                        <strong>{selectedRouteProperty?.routeHourlyWage ? `$${formatNumber(selectedRouteProperty.routeHourlyWage, 2)}/h` : "暂无数据"}</strong>
+                      </div>
+                      <div className="amazon-salary-card">
+                        <span>Amazon时薪（中位数）</span>
+                        <strong>{selectedRouteProperty?.amazonHourlyMedian ? `$${formatNumber(selectedRouteProperty.amazonHourlyMedian, 2)}/h` : "暂无数据"}</strong>
+                      </div>
+                    </div>
+                    {selectedRouteProperty?.salaryCity ? <p className="salary-source">调研城市：{selectedRouteProperty.salaryCity}</p> : null}
+                  </section>
+
+                  <section className="drawer-section">
+                    <div className="drawer-section-title">
+                      <AlertTriangle size={16} />
+                      <strong>异常原因</strong>
+                    </div>
+                    {selectedRouteReasons.length ? (
+                      <ul className="reason-list">
+                        {selectedRouteReasons.map((reason) => <li key={reason}><span />{reason}</li>)}
+                      </ul>
+                    ) : (
+                      <div className="drawer-good"><CheckCircle2 size={17} />当前规则下未识别到重点异常</div>
+                    )}
+                  </section>
+
+                  <section className="drawer-section">
+                    <div className="drawer-section-title">
+                      <Route size={16} />
+                      <strong>路区难易度</strong>
+                    </div>
+                    <div className="property-grid monthly-property-grid">
+                      <div><span>难易度</span><strong>{selectedRouteProperty?.difficulty || "未标注"}</strong></div>
+                      <div><span>首单里程</span><strong>{selectedRouteProperty?.firstMile ? `${formatNumber(selectedRouteProperty.firstMile, 1)} mi` : "未标注"}</strong></div>
+                      <div><span>熟手PPH</span><strong>{selectedRouteProperty?.expertPph ? `${formatNumber(selectedRouteProperty.expertPph, 1)} 件` : "未标注"}</strong></div>
+                      <div><span>派送异常率</span><strong>{selectedRouteProperty?.deliveryExceptionRate ? formatPercent(selectedRouteProperty.deliveryExceptionRate, 2) : "未标注"}</strong></div>
+                      <div><span>DNR率</span><strong>{selectedRouteProperty?.dnrRate ? formatPercent(selectedRouteProperty.dnrRate, 2) : "未标注"}</strong></div>
+                      <div><span>安全度</span><strong>{selectedRouteProperty?.safety || "未标注"}</strong></div>
+                    </div>
+                  </section>
+
+                  <section className="drawer-section">
+                    <div className="drawer-section-title">
+                      <MapPinned size={16} />
+                      <strong>收件地址类型占比</strong>
+                    </div>
+                    {selectedRouteProperty?.addressMix ? (
+                      <div className="address-bars">
+                        {addressMixItems(selectedRouteProperty.addressMix).sort((left, right) => right.value - left.value).slice(0, 7).map((item) => (
+                          <div key={item.name}>
+                            <div><span>{item.name}</span><strong>{formatNumber(item.value, 1)}%</strong></div>
+                            <div className="address-track"><span style={{ width: `${Math.min(100, item.value)}%` }} /></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="missing-copy">当前属性文件未包含该路区的地址类型明细。</p>}
+                  </section>
+                </>
+              ) : null}
 
               <section className="drawer-section">
                 <div className="drawer-section-title">

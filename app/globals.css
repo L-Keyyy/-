@@ -3004,6 +3004,32 @@ td .average-value-tag,
   font-size: 7px;
 }
 
+.property-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.property-grid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--slate-200);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.property-grid strong { color: var(--navy); font-size: 10px; }
+.route-salary-card { border-color: #b8d7ca !important; background: #f1fbf6 !important; }
+.amazon-salary-card { border-color: #f1d29f !important; background: #fff9ef !important; }
+.salary-source { margin: 8px 0 0; color: var(--slate-500); font-size: 7px; line-height: 1.55; }
+
+.address-bars { display: flex; flex-direction: column; gap: 9px; }
+.address-bars > div > div:first-child { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; color: var(--slate-600); font-size: 8px; }
+.address-bars .address-track span { background: linear-gradient(90deg, #75a7ff, var(--blue)); }
+
 .drawer-section {
   margin-top: 15px;
   padding-top: 15px;
@@ -3718,6 +3744,19 @@ td .average-value-tag,
 .weekly-style-monthly .monthly-footer {
   margin: 0;
 }
+
+.monthly-reference-panel { margin-top: 14px; }
+.monthly-reference-table-wrap { overflow: auto; border: 1px solid var(--slate-200); border-radius: 9px; }
+.monthly-reference-table { width: 100%; min-width: 980px; border-collapse: collapse; }
+.monthly-reference-table th { padding: 9px 10px; border-bottom: 1px solid var(--slate-200); background: #f4f7fc; color: var(--slate-600); font-size: 8px; text-align: left; white-space: nowrap; }
+.monthly-reference-table td { padding: 9px 10px; border-bottom: 1px solid var(--slate-100); color: var(--slate-700); font-size: 8px; white-space: nowrap; }
+.monthly-reference-table tbody tr:last-child td { border-bottom: 0; }
+.monthly-reference-table tbody tr:hover { background: #f8fbff; }
+.monthly-reference-table td strong,
+.monthly-reference-table td small { display: block; }
+.monthly-reference-table td strong { color: var(--navy); font-size: 9px; }
+.monthly-reference-table td small { margin-top: 2px; color: var(--slate-500); font-size: 7px; }
+.monthly-difficulty-value { display: inline-flex; padding: 3px 6px; border-radius: 99px; background: var(--blue-soft); color: var(--blue); font-weight: 700; }
 
 .monthly-postal-impact-row {
   display: flex;
