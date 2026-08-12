@@ -4828,6 +4828,24 @@ export default function Home({ reportVariant = "weekly" }: HomeProps = {}) {
                   <strong>{formatNumber(selectedRouteDetail.attempted)} 单</strong>
                   <small>当前路区全部DSP</small>
                 </div>
+                <div>
+                  <span>路区时薪</span>
+                  <strong>
+                    {propertyMap.get(selectedRoute.route)?.routeHourlyWage
+                      ? `$${formatNumber(propertyMap.get(selectedRoute.route)?.routeHourlyWage ?? 0, 2)}/h`
+                      : "—"}
+                  </strong>
+                  <small>六月财务口径</small>
+                </div>
+                <div>
+                  <span>Amazon时薪</span>
+                  <strong>
+                    {propertyMap.get(selectedRoute.route)?.amazonHourlyMedian
+                      ? `$${formatNumber(propertyMap.get(selectedRoute.route)?.amazonHourlyMedian ?? 0, 2)}/h`
+                      : "—"}
+                  </strong>
+                  <small>同城市时薪中位数</small>
+                </div>
               </div>
 
               <section className="drawer-section">
